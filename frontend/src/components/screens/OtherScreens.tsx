@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UsersAndRoles } from '@/components/settings/UsersAndRoles';
 import { PaymentMethodSettings } from '@/components/settings/PaymentMethodSettings';
 import { Staff } from '@/components/staff/types';
-import { useCustomers, useStaff } from '@/lib/hooks';
+import { useCustomers, useStaff, useStore, useUpdateStore } from '@/lib/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 export function CustomersScreen() {
@@ -114,7 +114,22 @@ export function ReportsScreen() {
 
 export function SettingsScreen() {
   const [activeTab, setActiveTab] = useState('store');
+  const { data: store, isLoading: storeLoading } = useStore();
+  const updateStore = useUpdateStore();
+  const [storeName, setStoreName] = useState('');
+  const [storeDesc, setStoreDesc] = useState('');
   const { data: staff = [] } = useStaff();
+
+  useEffect(() => {
+    if (store) {
+      setStoreName(store.name);
+      setStoreDesc(store.description || '');
+    }
+  }, [store]);
+
+  const handleSaveStore = () => {
+    updateStore.mutate({ name: storeName, description: storeDesc });
+  };
 
   const tabs = [
     { id: 'store', label: 'Store Info' },
@@ -149,30 +164,45 @@ export function SettingsScreen() {
           <>
             <div className="font-extrabold text-base text-slate-100 mb-0.5">Store Information</div>
             <div className="text-slate-500 text-xs mb-5">Configure your store details and operating information</div>
-            <div className="grid grid-cols-2 gap-3.5 mb-5">
-              {[
-                { label: 'Store Name', value: 'RetailCore Main Store' },
-                { label: 'Store ID',   value: 'STR-001' },
-                { label: 'Address',    value: 'Kalverstraat 1, Amsterdam' },
-                { label: 'Phone',      value: '+31 20 123 4567' },
-                { label: 'Email',      value: 'store@retailcore.com' },
-              ].map(f => (
-                <div key={f.label}>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">{f.label}</label>
-                  <input defaultValue={f.value} className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all" />
+            {storeLoading ? (
+              <div className="text-slate-500 text-sm">Loading...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3.5 mb-5">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Store Name</label>
+                    <input
+                      value={storeName}
+                      onChange={e => setStoreName(e.target.value)}
+                      className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Description</label>
+                    <input
+                      value={storeDesc}
+                      onChange={e => setStoreDesc(e.target.value)}
+                      className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Currency</label>
+                    <select className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-300 text-[13px] outline-none focus:border-blue-500 transition-all appearance-none">
+                      <option>EUR (€)</option><option>USD ($)</option><option>GBP (£)</option>
+                    </select>
+                  </div>
                 </div>
-              ))}
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Currency</label>
-                <select className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-300 text-[13px] outline-none focus:border-blue-500 transition-all appearance-none">
-                  <option>EUR (€)</option><option>USD ($)</option><option>GBP (£)</option>
-                </select>
-              </div>
-            </div>
-            <div className="pt-4 border-t border-white/[0.07] flex justify-end gap-2.5">
-              <button className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 hover:bg-[#252D3D] rounded-lg text-[13px] font-semibold transition-all">Cancel</button>
-              <button className="h-9 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all">Save Changes</button>
-            </div>
+                <div className="pt-4 border-t border-white/[0.07] flex justify-end gap-2.5">
+                  <button
+                    onClick={handleSaveStore}
+                    disabled={updateStore.isPending}
+                    className="h-9 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
+                  >
+                    {updateStore.isPending ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
 

@@ -22,6 +22,7 @@ export function EditStaffModal({ isOpen, onClose, onEdit, staff }: EditStaffModa
       email: staff.email,
       role: staff.role,
       phone: staff.phone,
+      password: '',
       pin: '',
       status: staff.status,
     } : emptyStaffFormData,

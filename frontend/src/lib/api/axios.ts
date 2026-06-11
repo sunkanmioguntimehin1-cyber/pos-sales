@@ -1,7 +1,8 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://pos-server-hmxz.onrender.com";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -17,11 +18,6 @@ api.interceptors.request.use(
       const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-      }
-
-      const tenantId = localStorage.getItem('tenantId');
-      if (tenantId) {
-        config.headers['X-Tenant-Id'] = tenantId;
       }
     }
     return config;
@@ -42,7 +38,6 @@ api.interceptors.response.use(
         case 401:
           if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
-            localStorage.removeItem('tenantId');
             localStorage.removeItem('auth-storage');
             window.location.href = '/login';
           }

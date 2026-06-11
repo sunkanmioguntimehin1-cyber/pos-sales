@@ -14,6 +14,7 @@ export interface CreateStaffData {
   name: string;
   email?: string;
   phone?: string;
+  password?: string;
   pin?: string;
   role: 'admin' | 'manager' | 'cashier';
   status?: 'active' | 'inactive';
@@ -30,20 +31,20 @@ export const staffApi = {
     const query = searchParams.toString();
     return api.get<{ staff: Staff[] }>(`/api/staff${query ? `?${query}` : ''}`).then(res => res.data.staff);
   },
-  
-  getById: (staffId: string) => 
+
+  getById: (staffId: string) =>
     api.get<{ staff: Staff }>(`/api/staff/${staffId}`).then(res => res.data.staff),
-  
-  create: (data: CreateStaffData) => 
+
+  create: (data: CreateStaffData) =>
     api.post<{ staff: Staff }>('/api/staff', data).then(res => res.data.staff),
-  
-  update: (staffId: string, data: UpdateStaffData) => 
+
+  update: (staffId: string, data: UpdateStaffData) =>
     api.put<{ staff: Staff }>(`/api/staff/${staffId}`, data).then(res => res.data.staff),
-  
-  delete: (staffId: string) => 
+
+  delete: (staffId: string) =>
     api.delete<{ message: string }>(`/api/staff/${staffId}`).then(res => res.data),
-  
-  verifyPin: (staffId: string, pin: string) => 
+
+  verifyPin: (staffId: string, pin: string) =>
     api.post<{ success: boolean; staff: { id: string; name: string; role: string } }>(
       '/api/staff/verify-pin',
       { staffId, pin }

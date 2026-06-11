@@ -10,8 +10,6 @@ export default function Home() {
   useEffect(() => {
     if (!token || !user) {
       router.push('/login');
-    } else if (user.role === 'superadmin') {
-      router.push('/superadmin');
     } else {
       router.push('/dashboard');
     }

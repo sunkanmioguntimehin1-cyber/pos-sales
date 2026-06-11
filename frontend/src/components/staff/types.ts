@@ -13,6 +13,7 @@ export interface StaffFormData {
   email?: string;
   role: 'admin' | 'manager' | 'cashier';
   phone?: string;
+  password?: string;
   pin?: string;
   status: 'active' | 'inactive';
 }
@@ -22,6 +23,7 @@ export const emptyStaffFormData: StaffFormData = {
   email: '',
   role: 'cashier',
   phone: '',
+  password: '',
   pin: '',
   status: 'active',
 };

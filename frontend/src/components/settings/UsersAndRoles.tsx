@@ -10,13 +10,11 @@ interface UsersAndRolesProps {
 
 const roleColors: Record<string, string> = {
   admin: 'bg-red-500/15 text-red-400',
-  manager: 'bg-blue-500/15 text-blue-400',
   cashier: 'bg-emerald-500/15 text-emerald-400',
 };
 
 const roleLabels: Record<string, string> = {
   admin: 'Admin',
-  manager: 'Manager',
   cashier: 'Cashier',
 };
 
@@ -166,11 +164,10 @@ export function UsersAndRoles({ staff, onUpdate }: UsersAndRolesProps) {
               <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Role</label>
               <select
                 value={formData.role}
-                onChange={e => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'cashier' })}
+                onChange={e => setFormData({ ...formData, role: e.target.value as 'admin' | 'cashier' })}
                 className="w-full h-9 px-3 bg-[#161B27] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] outline-none focus:border-blue-500"
               >
                 <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
                 <option value="cashier">Cashier</option>
               </select>
             </div>

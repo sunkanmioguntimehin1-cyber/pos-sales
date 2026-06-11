@@ -29,11 +29,7 @@ export default function LoginPage() {
   };
 
   if (loginMutation.isSuccess && user) {
-    if (user.role === 'superadmin') {
-      router.push('/superadmin');
-    } else {
-      router.push('/dashboard');
-    }
+    router.push('/dashboard');
   }
 
   return (

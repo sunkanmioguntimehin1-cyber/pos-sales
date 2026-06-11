@@ -41,7 +41,7 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
         <Controller
           name="email"
           control={control}
-          rules={{ 
+          rules={{
             required: 'Email is required',
             pattern: {
               value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -98,12 +98,34 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
       </div>
 
       <div>
-        <label className={labelCls}>{isEdit ? 'New PIN (leave blank to keep current)' : 'PIN Code *'}</label>
+        <label className={labelCls}>{isEdit ? 'New Password (leave blank to keep current)' : 'Password *'}</label>
+        <Controller
+          name="password"
+          control={control}
+          rules={{
+            required: isEdit ? false : 'Password is required',
+            minLength: { value: 6, message: 'Password must be at least 6 characters' },
+          }}
+          render={({ field }) => (
+            <>
+              <input
+                {...field}
+                type="password"
+                className={errors.password ? inputErrorCls : inputCls}
+                placeholder={isEdit ? "Enter new password or leave blank" : "Enter password"}
+              />
+              {errors.password && <span className="text-[11px] text-red-400 mt-1">{errors.password.message}</span>}
+            </>
+          )}
+        />
+      </div>
+
+      <div>
+        <label className={labelCls}>{isEdit ? 'New PIN (leave blank to keep current)' : 'PIN Code (optional)'}</label>
         <Controller
           name="pin"
           control={control}
-          rules={{ 
-            required: isEdit ? false : 'PIN is required',
+          rules={{
             minLength: { value: 4, message: 'PIN must be at least 4 digits' },
             maxLength: { value: 6, message: 'PIN must be at most 6 digits' },
           }}
@@ -114,7 +136,7 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
                 type="password"
                 maxLength={6}
                 className={errors.pin ? inputErrorCls : inputCls}
-                placeholder={isEdit ? "Enter new PIN or leave blank" : "Enter 4-6 digit PIN"}
+                placeholder={isEdit ? "Enter new PIN or leave blank" : "Enter 4-6 digit PIN (optional)"}
               />
               {errors.pin && <span className="text-[11px] text-red-400 mt-1">{errors.pin.message}</span>}
             </>

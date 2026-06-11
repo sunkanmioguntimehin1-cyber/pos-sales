@@ -10,7 +10,6 @@ interface AuthState {
   error: string | null;
   
   login: (data: LoginData) => Promise<void>;
-  register: (data: { email: string; password: string; name: string }) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   setUser: (user: User | null) => void;
@@ -36,22 +35,6 @@ export const useAuthStore = create<AuthState>()(
           });
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : 'Login failed';
-          set({ error: message, isLoading: false });
-          throw error;
-        }
-      },
-
-      register: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await authApi.register(data);
-          set({ 
-            user: response.user, 
-            token: response.token,
-            isLoading: false 
-          });
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : 'Registration failed';
           set({ error: message, isLoading: false });
           throw error;
         }

@@ -1,5 +1,5 @@
 'use client';
-import { useTenantStore } from '@/store/tenantStore';
+import { useStore } from '@/lib/hooks';
 import {
   IconDashboard, IconOrders, IconProducts, IconCategories, IconInventory,
   IconCustomers, IconReports, IconSettings, IconPOS, IconStore, IconUser,
@@ -24,10 +24,10 @@ const nav = [
 interface SidebarProps { active?: string; onChange?: (id: string) => void; }
 
 export function Sidebar({ active = 'dashboard', onChange }: SidebarProps) {
-  const tenant = useTenantStore((state) => state.tenant);
+  const { data: store } = useStore();
 
-  const brandName = tenant?.name || 'RetailCore';
-  const primaryColor = tenant?.settings.primaryColor || 'var(--color-primary)';
+  const brandName = store?.name || 'My Store';
+  const primaryColor = store?.settings.primaryColor || 'var(--color-primary)';
 
   return (
     <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 z-50 border-r" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
@@ -35,8 +35,8 @@ export function Sidebar({ active = 'dashboard', onChange }: SidebarProps) {
       {/* Logo */}
       <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-2.5">
-          <div 
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(59,130,246,0.4)]" 
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(59,130,246,0.4)]"
             style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
@@ -57,8 +57,8 @@ export function Sidebar({ active = 'dashboard', onChange }: SidebarProps) {
           <IconStore size={13} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-bold truncate" style={{ color: 'var(--color-text)' }}>{tenant?.name || 'Main Store'}</div>
-          <div className="text-[9px]" style={{ color: 'var(--color-text-subtle)' }}>{tenant?.description || 'Amsterdam, NL'}</div>
+          <div className="text-[11px] font-bold truncate" style={{ color: 'var(--color-text)' }}>{brandName}</div>
+          <div className="text-[9px]" style={{ color: 'var(--color-text-subtle)' }}>{store?.description || 'Main Store'}</div>
         </div>
         <div className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse-glow" style={{ backgroundColor: 'var(--color-success)' }} />
       </div>
@@ -92,7 +92,7 @@ export function Sidebar({ active = 'dashboard', onChange }: SidebarProps) {
               <Icon size={14} />
               <span>{label}</span>
               {(item as { live?: boolean }).live && (
-                <span 
+                <span
                   className="ml-auto text-white text-[8px] font-extrabold px-1.5 py-px rounded tracking-wider"
                   style={{ backgroundColor: primaryColor }}
                 >

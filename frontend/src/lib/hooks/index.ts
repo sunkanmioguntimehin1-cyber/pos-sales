@@ -1,7 +1,7 @@
-export { useLogin, useRegister, useLogout } from './useAuth';
-export { useStores, useStore, useCreateStore, useUpdateStore, useDeleteStore } from './useStores';
+export { useLogin, useLogout } from './useAuth';
+export { useStore, useUpdateStore } from './useStore';
 export { useStaff, useStaffById, useCreateStaff, useUpdateStaff, useDeleteStaff, useVerifyPin, type Staff } from './useStaff';
-export { 
+export {
   useProducts, useProduct, useCreateProduct, useUpdateProduct, useDeleteProduct, useAdjustStock,
   useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, type Product, type Category
 } from './useProducts';

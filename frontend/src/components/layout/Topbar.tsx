@@ -1,16 +1,13 @@
 'use client';
 import { IconSearch, IconBell, IconRefresh } from '@/components/ui/Icons';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
-import { TenantSwitcher } from '@/components/ui/TenantSwitcher';
 
 interface TopbarProps { title: string; subtitle?: string; actions?: React.ReactNode; }
 
 export function Topbar({ title, subtitle, actions }: TopbarProps) {
   return (
     <header className="h-14 border-b flex items-center px-5 gap-3 flex-shrink-0" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-      <TenantSwitcher />
-      <div className="w-px h-5" style={{ backgroundColor: 'var(--color-border)' }} />
-      
+
       <div className="flex-shrink-0">
         <div className="text-sm font-extrabold tracking-tight" style={{ color: 'var(--color-text)' }}>{title}</div>
         {subtitle && <div className="text-[10px] mt-px" style={{ color: 'var(--color-text-subtle)' }}>{subtitle}</div>}
