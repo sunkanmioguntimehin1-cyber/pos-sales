@@ -11,6 +11,7 @@ interface AddProductFormData {
   cost: number;
   stock: number;
   categoryId?: string;
+  isActive?: boolean;
   image?: string;
 }
 
@@ -56,14 +57,6 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
       setError('productCode', { type: 'manual', message: 'Product code is required' });
       hasErrors = true;
     }
-    if (!data.color.trim()) {
-      setError('color', { type: 'manual', message: 'Color is required' });
-      hasErrors = true;
-    }
-    if (!data.size.trim()) {
-      setError('size', { type: 'manual', message: 'Size is required' });
-      hasErrors = true;
-    }
     if (!data.sellingPrice || parseFloat(data.sellingPrice) < 0) {
       setError('sellingPrice', { type: 'manual', message: 'Valid selling price is required' });
       hasErrors = true;
@@ -88,11 +81,14 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
     const stock = parseInt(formData.stock);
 
     onAdd({
-      productCode: formData.productCodeType === 'auto' ? generateProductCode() : formData.productCode,
+      // Reuse the code shown in the form rather than generating a second one.
+      productCode: formData.productCode.trim() || generateProductCode(),
       name: formData.name,
       sellingPrice,
       cost,
       stock,
+      categoryId: formData.category || undefined,
+      isActive: formData.status !== 'inactive',
       image: imagePreview || undefined,
     });
 

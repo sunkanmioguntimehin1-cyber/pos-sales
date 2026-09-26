@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { applyIdVirtual } from './plugins/applyIdVirtual.js';
 
 const categorySchema = new Schema(
   {
@@ -10,5 +11,7 @@ const categorySchema = new Schema(
 );
 
 categorySchema.index({ name: 1 });
+
+applyIdVirtual(categorySchema);
 
 export const Category = mongoose.model('Category', categorySchema);

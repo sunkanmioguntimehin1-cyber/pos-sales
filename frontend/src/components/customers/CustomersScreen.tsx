@@ -17,12 +17,13 @@ const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--bo
 
 export function CustomersScreen() {
   const [search, setSearch] = useState('');
-  const [tierFilter, setTierFilter] = useState('All');
+  const [tierFilter, setTierFilter] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const { data: customers = [], isLoading } = useCustomers({
-    tier: tierFilter !== 'All' ? tierFilter : undefined,
+    // Lowercase enum values — 'Platinum' would never match the stored tier.
+    tier: tierFilter !== 'all' ? tierFilter : undefined,
     search: search || undefined,
   });
 
@@ -78,11 +79,11 @@ export function CustomersScreen() {
             />
           </div>
           <select className={selectCls} value={tierFilter} onChange={e => setTierFilter(e.target.value)}>
-            <option value="All">All Tiers</option>
-            <option value="Platinum">Platinum</option>
-            <option value="Gold">Gold</option>
-            <option value="Silver">Silver</option>
-            <option value="Bronze">Bronze</option>
+            <option value="all">All Tiers</option>
+            <option value="platinum">Platinum</option>
+            <option value="gold">Gold</option>
+            <option value="silver">Silver</option>
+            <option value="bronze">Bronze</option>
           </select>
         </div>
 

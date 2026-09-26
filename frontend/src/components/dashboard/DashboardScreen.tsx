@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/Icons';
 import { SectionCard, StatCard, EmptyState } from '@/components/ui/Card';
 import { AreaChart, BarList } from '@/components/ui/Chart';
-import { useOrders, useProducts, useStaff, useCustomers } from '@/lib/hooks';
+import { useOrders, useProducts, useStaff, useCustomers, getOrderCustomerName } from '@/lib/hooks';
 import type { Order } from '@/lib/api/orders';
 
 const currency = (value: number) =>
@@ -233,9 +233,9 @@ export function DashboardScreen() {
                             className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold"
                             style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
                           >
-                            {(order.customer?.name ?? 'W').slice(0, 2).toUpperCase()}
+                            {(getOrderCustomerName(order) ?? 'W').slice(0, 2).toUpperCase()}
                           </span>
-                          <span className="truncate">{order.customer?.name ?? 'Walk-in'}</span>
+                          <span className="truncate">{getOrderCustomerName(order) ?? 'Walk-in'}</span>
                         </div>
                       </td>
                       <td className="text-muted">{order.items?.length ?? 0}</td>

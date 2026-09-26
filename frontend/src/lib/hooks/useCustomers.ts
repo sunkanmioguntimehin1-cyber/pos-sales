@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { customersApi, Customer, CreateCustomerData } from '@/lib/api';
+import { snapshotLists, patchLists, restoreLists } from './optimistic';
 
 export type { Customer, CreateCustomerData } from '@/lib/api/customers';
+
+const CUSTOMERS = ['customers'] as const;
 
 export function useCustomers(filters?: { tier?: string; search?: string }) {
   return useQuery({
@@ -14,7 +17,9 @@ export function useCustomers(filters?: { tier?: string; search?: string }) {
 
 export function useCustomer(customerId: string) {
   return useQuery({
-    queryKey: ['customers', customerId],
+    // Singular key: list queries live under ['customers', filters], and sharing
+    // a prefix would make list mutations overwrite this single-object cache.
+    queryKey: ['customer', customerId],
     queryFn: () => customersApi.getById(customerId),
     enabled: !!customerId,
   });
@@ -26,33 +31,30 @@ export function useCreateCustomer() {
   return useMutation({
     mutationFn: (data: CreateCustomerData) => customersApi.create(data),
     onMutate: async (newCustomer) => {
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-      const previousCustomers = queryClient.getQueryData<Customer[]>(['customers']);
+      const previous = await snapshotLists<Customer>(queryClient, CUSTOMERS);
 
-      queryClient.setQueryData<Customer[]>(['customers'], (old = []) => [
+      patchLists<Customer>(queryClient, CUSTOMERS, (old) => [
         ...old,
         {
           ...newCustomer,
           id: `temp-${Date.now()}`,
-          tier: 'bronze' as const,
+          tier: 'bronze',
           totalSpent: 0,
           visitCount: 0,
           createdAt: new Date().toISOString(),
         } as Customer,
       ]);
 
-      return { previousCustomers };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Customer added successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousCustomers) {
-        queryClient.setQueryData(['customers'], context.previousCustomers);
-      }
+      if (context?.previous) restoreLists<Customer>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS });
     },
   });
 }
@@ -64,27 +66,24 @@ export function useUpdateCustomer() {
     mutationFn: ({ customerId, data }: { customerId: string; data: Partial<CreateCustomerData> }) =>
       customersApi.update(customerId, data),
     onMutate: async ({ customerId, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-      const previousCustomers = queryClient.getQueryData<Customer[]>(['customers']);
+      const previous = await snapshotLists<Customer>(queryClient, CUSTOMERS);
 
-      queryClient.setQueryData<Customer[]>(['customers'], (old = []) =>
-        old.map(customer =>
+      patchLists<Customer>(queryClient, CUSTOMERS, (old) =>
+        old.map((customer) =>
           customer.id === customerId ? { ...customer, ...data } : customer
         )
       );
 
-      return { previousCustomers };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Customer updated successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousCustomers) {
-        queryClient.setQueryData(['customers'], context.previousCustomers);
-      }
+      if (context?.previous) restoreLists<Customer>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS });
     },
   });
 }
@@ -95,25 +94,22 @@ export function useDeleteCustomer() {
   return useMutation({
     mutationFn: (customerId: string) => customersApi.delete(customerId),
     onMutate: async (customerId) => {
-      await queryClient.cancelQueries({ queryKey: ['customers'] });
-      const previousCustomers = queryClient.getQueryData<Customer[]>(['customers']);
+      const previous = await snapshotLists<Customer>(queryClient, CUSTOMERS);
 
-      queryClient.setQueryData<Customer[]>(['customers'], (old = []) =>
-        old.filter(customer => customer.id !== customerId)
+      patchLists<Customer>(queryClient, CUSTOMERS, (old) =>
+        old.filter((customer) => customer.id !== customerId)
       );
 
-      return { previousCustomers };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Customer deleted successfully');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousCustomers) {
-        queryClient.setQueryData(['customers'], context.previousCustomers);
-      }
+      if (context?.previous) restoreLists<Customer>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS });
     },
   });
 }

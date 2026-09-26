@@ -1,4 +1,5 @@
 import { Customer } from '../models/customer.model.js';
+import { respondWithError } from '../utils/respondWithError.js';
 
 export async function getCustomers(req, res) {
   try {
@@ -22,8 +23,24 @@ export async function getCustomers(req, res) {
 
     res.json({ customers });
   } catch (error) {
-    console.error('Get customers error:', error);
-    res.status(500).json({ error: 'Failed to get customers' });
+    respondWithError(res, error, { context: 'Get customers error', message: 'Failed to get customers' });
+  }
+}
+
+export async function getCustomer(req, res) {
+  try {
+    const { customerId } = req.params;
+
+    const customer = await Customer.findById(customerId);
+
+    if (!customer) {
+      res.status(404).json({ error: 'Customer not found' });
+      return;
+    }
+
+    res.json({ customer });
+  } catch (error) {
+    respondWithError(res, error, { context: 'Get customer error', message: 'Failed to get customer' });
   }
 }
 
@@ -48,8 +65,7 @@ export async function createCustomer(req, res) {
 
     res.status(201).json({ customer });
   } catch (error) {
-    console.error('Create customer error:', error);
-    res.status(500).json({ error: 'Failed to create customer' });
+    respondWithError(res, error, { context: 'Create customer error', message: 'Failed to create customer' });
   }
 }
 
@@ -74,8 +90,7 @@ export async function updateCustomer(req, res) {
 
     res.json({ customer });
   } catch (error) {
-    console.error('Update customer error:', error);
-    res.status(500).json({ error: 'Failed to update customer' });
+    respondWithError(res, error, { context: 'Update customer error', message: 'Failed to update customer' });
   }
 }
 
@@ -91,7 +106,6 @@ export async function deleteCustomer(req, res) {
 
     res.json({ message: 'Customer deleted successfully' });
   } catch (error) {
-    console.error('Delete customer error:', error);
-    res.status(500).json({ error: 'Failed to delete customer' });
+    respondWithError(res, error, { context: 'Delete customer error', message: 'Failed to delete customer' });
   }
 }

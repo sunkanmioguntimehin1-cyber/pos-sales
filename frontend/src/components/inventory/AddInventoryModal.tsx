@@ -3,25 +3,26 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { InventoryForm } from './InventoryForm';
-import { InventoryFormData, InventoryItem, emptyInventoryFormData } from './types';
+import { InventoryFormData, emptyInventoryFormData } from './types';
 
 interface AddInventoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (item: Omit<InventoryItem, 'id'>) => void;
+  /** Only the fields that map onto the product schema are passed through. */
+  onAdd: (item: {
+    productCode: string;
+    name: string;
+    price: number;
+    costPrice?: number;
+    onHand: number;
+    reorder: number;
+  }) => void;
 }
 
 const generateProductCode = (): string => {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `PRD-${timestamp}-${random}`;
-};
-
-const getStatus = (onHand: number, reorder: number): InventoryItem['status'] => {
-  if (onHand === 0) return 'out';
-  if (onHand <= reorder) return 'critical';
-  if (onHand <= reorder * 1.5) return 'low';
-  return 'ok';
 };
 
 export function AddInventoryModal({ isOpen, onClose, onAdd }: AddInventoryModalProps) {
@@ -56,24 +57,16 @@ export function AddInventoryModal({ isOpen, onClose, onAdd }: AddInventoryModalP
       setError('name', { type: 'manual', message: 'Name is required' });
       hasErrors = true;
     }
-    if (!data.color.trim()) {
-      setError('color', { type: 'manual', message: 'Color is required' });
+    if (data.price === '' || parseFloat(data.price) < 0) {
+      setError('price', { type: 'manual', message: 'Selling price is required' });
       hasErrors = true;
     }
-    if (!data.size.trim()) {
-      setError('size', { type: 'manual', message: 'Size is required' });
-      hasErrors = true;
-    }
-    if (!data.onHand || parseInt(data.onHand) < 0) {
+    if (data.onHand === '' || parseInt(data.onHand) < 0) {
       setError('onHand', { type: 'manual', message: 'Valid quantity is required' });
       hasErrors = true;
     }
-    if (!data.reorder || parseInt(data.reorder) < 0) {
+    if (data.reorder === '' || parseInt(data.reorder) < 0) {
       setError('reorder', { type: 'manual', message: 'Reorder point is required' });
-      hasErrors = true;
-    }
-    if (!data.location.trim()) {
-      setError('location', { type: 'manual', message: 'Location is required' });
       hasErrors = true;
     }
 
@@ -83,23 +76,17 @@ export function AddInventoryModal({ isOpen, onClose, onAdd }: AddInventoryModalP
   const onFormSubmit = (formData: InventoryFormData) => {
     if (!validateForm(formData)) return;
 
-    const onHand = parseInt(formData.onHand) || 0;
-    const reserved = parseInt(formData.reserved) || 0;
-    const reorder = parseInt(formData.reorder) || 0;
-    const available = onHand - reserved;
+    const costPrice = parseFloat(formData.costPrice);
 
     onAdd({
-      productCode: formData.productCodeType === 'auto' ? generateProductCode() : formData.productCode,
+      // Reuse the code already shown in the form. Generating a second one here
+      // saved the product under a code the user never saw.
+      productCode: formData.productCode.trim() || generateProductCode(),
       name: formData.name.trim(),
-      color: formData.color.trim(),
-      size: formData.size.trim(),
-      onHand,
-      reserved,
-      available,
-      reorder,
-      location: formData.location.trim().toUpperCase(),
-      updated: 'Just now',
-      status: getStatus(onHand, reorder),
+      price: parseFloat(formData.price) || 0,
+      costPrice: Number.isNaN(costPrice) ? undefined : costPrice,
+      onHand: parseInt(formData.onHand) || 0,
+      reorder: parseInt(formData.reorder) || 0,
     });
 
     handleClose();

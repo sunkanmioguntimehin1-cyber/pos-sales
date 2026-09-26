@@ -81,7 +81,7 @@ export function StockAdjustmentForm({ onSubmit, inventory }: StockAdjustmentForm
                   <option value="">Select product…</option>
                   {inventory.map(item => (
                     <option key={item.productCode} value={item.productCode}>
-                      {item.name} ({item.color}, {item.size})
+                      {item.name} ({item.productCode}) — {item.onHand} on hand
                     </option>
                   ))}
                 </select>

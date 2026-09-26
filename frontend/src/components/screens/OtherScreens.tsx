@@ -122,8 +122,8 @@
 
 //   useEffect(() => {
 //     if (store) {
-//       setStoreName(store.name);
-//       setStoreDesc(store.description || '');
+//       setStoreNameOverride(store.name);
+//       setStoreDescOverride(store.description || '');
 //     }
 //   }, [store]);
 
@@ -173,7 +173,7 @@
 //                     <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">Store Name</label>
 //                     <input
 //                       value={storeName}
-//                       onChange={e => setStoreName(e.target.value)}
+//                       onChange={e => setStoreNameOverride(e.target.value)}
 //                       className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all"
 //                     />
 //                   </div>
@@ -181,7 +181,7 @@
 //                     <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">Description</label>
 //                     <input
 //                       value={storeDesc}
-//                       onChange={e => setStoreDesc(e.target.value)}
+//                       onChange={e => setStoreDescOverride(e.target.value)}
 //                       className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all"
 //                     />
 //                   </div>
@@ -406,15 +406,12 @@ export function SettingsScreen() {
   const [activeTab, setActiveTab] = useState("store");
   const { data: store, isLoading: storeLoading } = useStore();
   const updateStore = useUpdateStore();
-  const [storeName, setStoreName] = useState("");
-  const [storeDesc, setStoreDesc] = useState("");
-
-  useEffect(() => {
-    if (store) {
-      setStoreName(store.name);
-      setStoreDesc(store.description || "");
-    }
-  }, [store]);
+  // Uncontrolled-with-seed: `null` means "still showing the server value".
+  // The old useEffect-to-setState pair caused an extra render on every load.
+  const [storeNameOverride, setStoreNameOverride] = useState<string | null>(null);
+  const [storeDescOverride, setStoreDescOverride] = useState<string | null>(null);
+  const storeName = storeNameOverride ?? store?.name ?? "";
+  const storeDesc = storeDescOverride ?? store?.description ?? "";
 
   const handleSaveStore = () => {
     updateStore.mutate({ name: storeName, description: storeDesc });
@@ -510,7 +507,7 @@ export function SettingsScreen() {
                     </label>
                     <input
                       value={storeName}
-                      onChange={(e) => setStoreName(e.target.value)}
+                      onChange={(e) => setStoreNameOverride(e.target.value)}
                       className={inputCls}
                       style={inputStyle}
                     />
@@ -524,7 +521,7 @@ export function SettingsScreen() {
                     </label>
                     <input
                       value={storeDesc}
-                      onChange={(e) => setStoreDesc(e.target.value)}
+                      onChange={(e) => setStoreDescOverride(e.target.value)}
                       className={inputCls}
                       style={inputStyle}
                     />

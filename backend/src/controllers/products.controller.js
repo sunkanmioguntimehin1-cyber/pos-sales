@@ -1,5 +1,6 @@
 import { Product } from '../models/product.model.js';
 import { Category } from '../models/category.model.js';
+import { respondWithError } from '../utils/respondWithError.js';
 
 export async function getProducts(req, res) {
   try {
@@ -29,14 +30,30 @@ export async function getProducts(req, res) {
 
     res.json({ products });
   } catch (error) {
-    console.error('Get products error:', error);
-    res.status(500).json({ error: 'Failed to get products' });
+    respondWithError(res, error, { context: 'Get products error', message: 'Failed to get products' });
+  }
+}
+
+export async function getProduct(req, res) {
+  try {
+    const { productId } = req.params;
+
+    const product = await Product.findById(productId).populate('categoryId', 'name color');
+
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+
+    res.json({ product });
+  } catch (error) {
+    respondWithError(res, error, { context: 'Get product error', message: 'Failed to get product' });
   }
 }
 
 export async function createProduct(req, res) {
   try {
-    const { name, sku, barcode, description, price, costPrice, categoryId, image, stock, lowStockThreshold } = req.body;
+    const { name, sku, barcode, description, price, costPrice, categoryId, image, stock, lowStockThreshold, isActive } = req.body;
 
     if (!name || price === undefined) {
       res.status(400).json({ error: 'Name and price are required' });
@@ -54,6 +71,9 @@ export async function createProduct(req, res) {
       image,
       stock: stock || 0,
       lowStockThreshold: lowStockThreshold || 10,
+      // Previously dropped, so "Inactive" products were silently created active
+      // and kept showing up in the POS.
+      ...(isActive === undefined ? {} : { isActive: Boolean(isActive) }),
     });
 
     await product.save();
@@ -61,20 +81,34 @@ export async function createProduct(req, res) {
 
     res.status(201).json({ product });
   } catch (error) {
-    console.error('Create product error:', error);
-    res.status(500).json({ error: 'Failed to create product' });
+    respondWithError(res, error, { context: 'Create product error', message: 'Failed to create product' });
   }
 }
 
 export async function updateProduct(req, res) {
   try {
     const { productId } = req.params;
-    const updates = req.body;
+    // Allowlist rather than spreading req.body: passing the raw body through
+    // let a client overwrite immutable fields (_id, createdAt) or anything
+    // else on the document.
+    const MUTABLE_FIELDS = [
+      'name', 'sku', 'barcode', 'description', 'price', 'costPrice',
+      'categoryId', 'image', 'stock', 'lowStockThreshold', 'isActive',
+    ];
+    const updates = {};
+    for (const field of MUTABLE_FIELDS) {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'No updatable fields provided' });
+      return;
+    }
 
     const product = await Product.findByIdAndUpdate(
       { _id: productId },
-      updates,
-      { new: true }
+      { $set: updates },
+      { new: true, runValidators: true }
     ).populate('categoryId', 'name color');
 
     if (!product) {
@@ -84,8 +118,7 @@ export async function updateProduct(req, res) {
 
     res.json({ product });
   } catch (error) {
-    console.error('Update product error:', error);
-    res.status(500).json({ error: 'Failed to update product' });
+    respondWithError(res, error, { context: 'Update product error', message: 'Failed to update product' });
   }
 }
 
@@ -101,8 +134,7 @@ export async function deleteProduct(req, res) {
 
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
-    console.error('Delete product error:', error);
-    res.status(500).json({ error: 'Failed to delete product' });
+    respondWithError(res, error, { context: 'Delete product error', message: 'Failed to delete product' });
   }
 }
 
@@ -136,8 +168,7 @@ export async function adjustStock(req, res) {
 
     res.json({ product });
   } catch (error) {
-    console.error('Adjust stock error:', error);
-    res.status(500).json({ error: 'Failed to adjust stock' });
+    respondWithError(res, error, { context: 'Adjust stock error', message: 'Failed to adjust stock' });
   }
 }
 
@@ -146,8 +177,7 @@ export async function getCategories(req, res) {
     const categories = await Category.find().sort({ name: 1 });
     res.json({ categories });
   } catch (error) {
-    console.error('Get categories error:', error);
-    res.status(500).json({ error: 'Failed to get categories' });
+    respondWithError(res, error, { context: 'Get categories error', message: 'Failed to get categories' });
   }
 }
 
@@ -165,8 +195,7 @@ export async function createCategory(req, res) {
 
     res.status(201).json({ category });
   } catch (error) {
-    console.error('Create category error:', error);
-    res.status(500).json({ error: 'Failed to create category' });
+    respondWithError(res, error, { context: 'Create category error', message: 'Failed to create category' });
   }
 }
 
@@ -188,8 +217,7 @@ export async function updateCategory(req, res) {
 
     res.json({ category });
   } catch (error) {
-    console.error('Update category error:', error);
-    res.status(500).json({ error: 'Failed to update category' });
+    respondWithError(res, error, { context: 'Update category error', message: 'Failed to update category' });
   }
 }
 
@@ -207,7 +235,6 @@ export async function deleteCategory(req, res) {
 
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
-    console.error('Delete category error:', error);
-    res.status(500).json({ error: 'Failed to delete category' });
+    respondWithError(res, error, { context: 'Delete category error', message: 'Failed to delete category' });
   }
 }

@@ -6,10 +6,33 @@ import { EditProductModal } from './EditProductModal';
 import { ViewProductPanel } from './ViewProductPanel';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { SkeletonTable } from '@/components/ui/Skeleton';
-import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct, Product } from '@/lib/hooks';
+import {
+  useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct, Product,
+  getProductCategoryName,
+} from '@/lib/hooks';
 import { CreateProductData } from '@/lib/api/products';
 
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
+
+const ALL = 'All';
+
+/**
+ * Module scope on purpose: these were declared below the `filteredProducts`
+ * filter that calls them, which threw a TDZ ReferenceError at render time.
+ */
+function getProductStatus(p: Product): string {
+  if (!p.isActive) return 'inactive';
+  if (p.stock === 0) return 'out';
+  if (p.stock < (p.lowStockThreshold || 10)) return 'low';
+  return 'active';
+}
+
+function statusBadge(s: string) {
+  if (s === 'active') return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400">Active</span>;
+  if (s === 'low')    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400">Low Stock</span>;
+  if (s === 'out')    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400">Out of Stock</span>;
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--input-bg)] text-muted">Inactive</span>;
+}
 
 interface AddProductFormData {
   name: string;
@@ -18,6 +41,7 @@ interface AddProductFormData {
   cost: number;
   stock: number;
   categoryId?: string;
+  isActive?: boolean;
   image?: string;
 }
 
@@ -28,14 +52,16 @@ interface UpdateProductFormData {
   cost: number;
   stock: number;
   categoryId?: string;
+  isActive?: boolean;
   image?: string;
 }
 
 export function ProductsScreen() {
   const [search, setSearch] = useState('');
-  const [catFilter, setCatFilter] = useState('All');
+  // Holds a category *id*: the backend filters with `categoryId = <value>`.
+  const [catFilter, setCatFilter] = useState<string>(ALL);
   const [statusFilter, setStatusFilter] = useState('All');
-  
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isViewPanelOpen, setIsViewPanelOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -43,34 +69,20 @@ export function ProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const { data: products = [], isLoading } = useProducts({
-    category: catFilter !== 'All' ? catFilter : undefined,
+    category: catFilter !== ALL ? catFilter : undefined,
     search: search || undefined,
   });
-  
+
   const { data: categories = [] } = useCategories();
-  
+
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
   const filteredProducts = products.filter(p =>
-    (statusFilter === 'All' || getProductStatus(p) === statusFilter.toLowerCase()) &&
+    (statusFilter === ALL || getProductStatus(p) === statusFilter.toLowerCase()) &&
     p.name.toLowerCase().includes(search.toLowerCase())
   );
-
-  const getProductStatus = (p: Product): string => {
-    if (!p.isActive) return 'inactive';
-    if (p.stock === 0) return 'out';
-    if (p.stock < (p.lowStockThreshold || 10)) return 'low';
-    return 'active';
-  };
-
-  const statusBadge = (s: string) => {
-    if (s === 'active') return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400">Active</span>;
-    if (s === 'low')    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400">Low Stock</span>;
-    if (s === 'out')    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400">Out of Stock</span>;
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--input-bg)] text-muted">Inactive</span>;
-  };
 
   const handleAddProduct = (productData: AddProductFormData) => {
     const data: CreateProductData = {
@@ -80,6 +92,7 @@ export function ProductsScreen() {
       costPrice: productData.cost,
       stock: productData.stock,
       categoryId: productData.categoryId,
+      isActive: productData.isActive ?? true,
       image: productData.image,
     };
     createProduct.mutate(data);
@@ -95,6 +108,7 @@ export function ProductsScreen() {
         costPrice: productData.cost,
         stock: productData.stock,
         categoryId: productData.categoryId,
+        isActive: productData.isActive ?? true,
         image: productData.image,
       },
     });
@@ -167,8 +181,8 @@ export function ProductsScreen() {
             />
           </div>
           <select className={selectCls} value={catFilter} onChange={e => setCatFilter(e.target.value)}>
-            <option value="All">All Categories</option>
-            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            <option value={ALL}>All Categories</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select className={selectCls} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="All">All Status</option>
@@ -200,7 +214,7 @@ export function ProductsScreen() {
                   <th className="w-10 px-3.5 py-2.5 text-left border-b border-[var(--border)] bg-[var(--surface-2)]">
                     <input type="checkbox" className="accent-blue-500" />
                   </th>
-                  {['Product', 'SKU', 'Category', 'Price', 'Stock', 'Status', ''].map(h => (
+                  {['Product', 'Category', 'Price', 'Stock', 'Status', ''].map(h => (
                     <th key={h} className="px-3.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                       {h}
                     </th>
@@ -225,10 +239,7 @@ export function ProductsScreen() {
                       </div>
                     </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
-                      <span className="text-xs text-muted">{p.sku || '-'}</span>
-                    </td>
-                    <td className="px-3.5 py-3 border-b border-[var(--border)]">
-                      <span className="text-xs text-muted">{p.category?.name || '-'}</span>
+                      <span className="text-xs text-muted">{getProductCategoryName(p) || '-'}</span>
                     </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums text-[var(--text)]">${p.price.toFixed(2)}</td>
                     <td className={`px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums ${p.stock === 0 ? 'text-red-400' : p.stock < (p.lowStockThreshold || 10) ? 'text-amber-400' : 'text-[var(--text)]'}`}>{p.stock}</td>

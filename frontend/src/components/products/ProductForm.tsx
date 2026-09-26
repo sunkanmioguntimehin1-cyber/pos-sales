@@ -2,20 +2,25 @@
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { Control, FieldErrors, Controller } from 'react-hook-form';
 import { IconX, IconUpload } from '@/components/ui/Icons';
+import { useCategories } from '@/lib/hooks';
 
+/**
+ * Mirrors the product schema. The old form collected colour, size, discount and
+ * emoji — none of which have a backing column, so they were dropped instead of
+ * being silently discarded on save. "Low/out of stock" is likewise derived from
+ * `stock` vs `lowStockThreshold` at render time, so only the real
+ * `isActive` flag is editable here.
+ */
 export interface ProductFormData {
   productCodeType: 'auto' | 'manual';
   productCode: string;
   name: string;
-  color: string;
-  size: string;
+  /** Category *id* — the backend filters and stores categoryId. */
   category: string;
   sellingPrice: string;
   cost: string;
-  discount: string;
   stock: string;
   status: string;
-  emoji: string;
   image: File | null;
 }
 
@@ -23,20 +28,14 @@ export const emptyFormData: ProductFormData = {
   productCodeType: 'auto',
   productCode: '',
   name: '',
-  color: '',
-  size: '',
-  category: 'Electronics',
+  category: '',
   sellingPrice: '',
   cost: '',
-  discount: '0',
   stock: '',
   status: 'active',
-  emoji: '🎧',
   image: null,
 };
 
-const categories = ['Electronics', 'Cases', 'Accessories', 'Cables'];
-const emojis = ['🎧', '🔌', '📱', '⚡', '💻', '🔗', '🔊', '🛡️', '⌨️', '🖱️', '🎮', '📀', '🔋', '💡', '🎤', '📷'];
 
 const inputCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all";
 const inputErrorCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-red-500 rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-red-500 transition-all";
@@ -52,6 +51,9 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ control, errors, imagePreview, setImagePreview, isEdit = false }: ProductFormProps) {
+  // Categories live in the database; the previous hardcoded name list meant the
+  // submitted value could never be a valid categoryId.
+  const { data: categories = [] } = useCategories();
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,7 +200,7 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="mb-4">
         <div>
           <label className={labelCls}>Product Name</label>
           <Controller
@@ -214,45 +216,9 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
             )}
           />
         </div>
-        <div>
-          <label className={labelCls}>Color *</label>
-          <Controller
-            name="color"
-            control={control}
-            render={({ field }) => (
-              <>
-                <input
-                  {...field}
-                  type="text"
-                  className={errors.color ? inputErrorCls : inputCls}
-                  placeholder="e.g., Gold, Silver, Black..."
-                />
-                {errors.color && <span className="text-[11px] text-red-400 mt-1">{errors.color.message}</span>}
-              </>
-            )}
-          />
-        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <label className={labelCls}>Size *</label>
-          <Controller
-            name="size"
-            control={control}
-            render={({ field }) => (
-              <>
-                <input
-                  {...field}
-                  type="text"
-                  className={errors.size ? inputErrorCls : inputCls}
-                  placeholder="e.g., XS, S, M, L, 10, 12..."
-                />
-                {errors.size && <span className="text-[11px] text-red-400 mt-1">{errors.size.message}</span>}
-              </>
-            )}
-          />
-        </div>
+      <div className="mb-4">
         <div>
           <label className={labelCls}>Category</label>
           <Controller
@@ -260,7 +226,8 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
             control={control}
             render={({ field }) => (
               <select {...field} className={selectCls}>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">Uncategorised</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
           />
@@ -308,23 +275,6 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
             )}
           />
         </div>
-        <div>
-          <label className={labelCls}>Discount (%)</label>
-          <Controller
-            name="discount"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                min="0"
-                max="100"
-                className={inputCls}
-                placeholder="0"
-              />
-            )}
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
@@ -354,36 +304,15 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
             control={control}
             render={({ field }) => (
               <select {...field} className={selectCls}>
+                {/* Low/out of stock is derived from stock vs threshold, not stored. */}
                 <option value="active">Active</option>
-                <option value="low">Low Stock</option>
-                <option value="out">Out of Stock</option>
+                <option value="inactive">Inactive (hidden from POS)</option>
               </select>
             )}
           />
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className={labelCls}>Emoji (Fallback Icon)</label>
-        <Controller
-          name="emoji"
-          control={control}
-          render={({ field }) => (
-            <div className="grid grid-cols-8 gap-1.5 p-2 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg">
-              {emojis.map(e => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => field.onChange(e)}
-                  className={`w-8 h-8 flex items-center justify-center text-base rounded-md transition-all ${field.value === e ? 'bg-blue-500 text-white' : 'hover:bg-[var(--input-bg)]'}`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          )}
-        />
-      </div>
     </>
   );
 }

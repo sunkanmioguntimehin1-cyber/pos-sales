@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { ProductForm, ProductFormData } from './ProductForm';
-import { Product } from '@/lib/api/products';
+import { Product, getProductCategoryId } from '@/lib/api/products';
 
 interface EditProductFormData {
   productCode: string;
@@ -12,6 +12,7 @@ interface EditProductFormData {
   cost: number;
   stock: number;
   categoryId?: string;
+  isActive?: boolean;
   image?: string;
 }
 
@@ -26,15 +27,11 @@ const defaultFormData: ProductFormData = {
   productCodeType: 'manual',
   productCode: '',
   name: '',
-  color: '',
-  size: '',
-  category: 'Electronics',
+  category: '',
   sellingPrice: '',
   cost: '',
-  discount: '0',
   stock: '',
   status: 'active',
-  emoji: '🎧',
   image: null,
 };
 
@@ -73,15 +70,13 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
         productCodeType: 'manual',
         productCode: product.sku || '',
         name: product.name,
-        color: '',
-        size: '',
-        category: product.category?.name || '',
+        category: getProductCategoryId(product) || '',
         sellingPrice: product.price.toString(),
         cost: (product.costPrice || 0).toString(),
-        discount: '0',
         stock: product.stock.toString(),
-        status: 'active',
-        emoji: '📦',
+        // Reflect the stored flag; hardcoding 'active' re-enabled archived
+        // products the moment anyone edited an unrelated field.
+        status: product.isActive === false ? 'inactive' : 'active',
         image: null,
       });
       setImagePreview(product.image || null);
@@ -119,11 +114,14 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
     const stock = parseInt(formData.stock);
 
     onUpdate(product.id, {
-      productCode: formData.productCodeType === 'auto' ? generateProductCode() : formData.productCode,
+      // Reuse the code shown in the form rather than generating a second one.
+      productCode: formData.productCode.trim() || generateProductCode(),
       name: formData.name,
       sellingPrice,
       cost,
       stock,
+      categoryId: formData.category || undefined,
+      isActive: formData.status !== 'inactive',
       image: imagePreview || undefined,
     });
 

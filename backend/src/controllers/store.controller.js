@@ -1,4 +1,5 @@
 import { Store } from '../models/store.model.js';
+import { respondWithError } from '../utils/respondWithError.js';
 
 export async function getStore(_req, res) {
   try {
@@ -9,8 +10,7 @@ export async function getStore(_req, res) {
 
     res.json({ store });
   } catch (error) {
-    console.error('Get store error:', error);
-    res.status(500).json({ error: 'Failed to get store' });
+    respondWithError(res, error, { context: 'Get store error', message: 'Failed to get store' });
   }
 }
 
@@ -30,13 +30,30 @@ export async function updateStore(req, res) {
       if (settings.primaryColor) store.settings.primaryColor = settings.primaryColor;
       if (settings.accentColor) store.settings.accentColor = settings.accentColor;
       if (settings.theme) store.settings.theme = settings.theme;
+      // Previously any payment-method changes sent from the settings screen
+      // were dropped here, so the toggles appeared to save but never applied.
+      if (settings.paymentMethods) {
+        const pm = settings.paymentMethods;
+        if (typeof pm.cash === 'boolean') store.settings.paymentMethods.cash = pm.cash;
+        if (pm.transfer) {
+          const t = pm.transfer;
+          if (typeof t.enabled === 'boolean') store.settings.paymentMethods.transfer.enabled = t.enabled;
+          if (typeof t.gtb === 'boolean') store.settings.paymentMethods.transfer.gtb = t.gtb;
+          if (typeof t.firstbank === 'boolean') store.settings.paymentMethods.transfer.firstbank = t.firstbank;
+        }
+        if (pm.pos) {
+          const p = pm.pos;
+          if (typeof p.enabled === 'boolean') store.settings.paymentMethods.pos.enabled = p.enabled;
+          if (typeof p.gtb === 'boolean') store.settings.paymentMethods.pos.gtb = p.gtb;
+          if (typeof p.firstbank === 'boolean') store.settings.paymentMethods.pos.firstbank = p.firstbank;
+        }
+      }
     }
 
     await store.save();
 
     res.json({ store });
   } catch (error) {
-    console.error('Update store error:', error);
-    res.status(500).json({ error: 'Failed to update store' });
+    respondWithError(res, error, { context: 'Update store error', message: 'Failed to update store' });
   }
 }

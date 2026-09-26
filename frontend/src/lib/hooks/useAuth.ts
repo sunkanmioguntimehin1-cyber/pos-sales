@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { authApi, LoginData } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -19,6 +19,7 @@ export function useLogin() {
 
 export function useLogout() {
   const { logout } = useAuthStore();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
@@ -29,7 +30,11 @@ export function useLogout() {
     onSuccess: () => {
       localStorage.removeItem('token');
       logout();
+      // Without this, the previous user's cached products/orders/customers stay
+      // in memory and are served to whoever logs in next.
+      queryClient.clear();
       toast.success('Logged out successfully');
+      window.location.href = '/';
     },
   });
 }

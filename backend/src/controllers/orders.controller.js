@@ -1,11 +1,12 @@
 import { Order } from '../models/order.model.js';
 import { Product } from '../models/product.model.js';
 import { Customer } from '../models/customer.model.js';
+import { respondWithError } from '../utils/respondWithError.js';
 
 function generateOrderNumber() {
   const date = new Date();
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `ORD-${dateStr}-${random}`;
 }
 
@@ -38,16 +39,15 @@ export async function getOrders(req, res) {
 
     res.json({ orders });
   } catch (error) {
-    console.error('Get orders error:', error);
-    res.status(500).json({ error: 'Failed to get orders' });
+    respondWithError(res, error, { context: 'Get orders error', message: 'Failed to get orders' });
   }
 }
 
 export async function createOrder(req, res) {
   try {
-    const { items, subtotal, tax, total, paymentMethod, customerId, branchId, notes } = req.body;
+    const { items, subtotal, tax, total, paymentMethod, customerId, branchId, staffId, notes } = req.body;
 
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       res.status(400).json({ error: 'Order must have at least one item' });
       return;
     }
@@ -57,8 +57,34 @@ export async function createOrder(req, res) {
       return;
     }
 
-    const staffId = req.user.userId;
+    const invalidItem = items.find(
+      (item) => !item?.productId || !item?.productName || !item?.quantity || item.unitPrice === undefined
+    );
+    if (invalidItem) {
+      res.status(400).json({ error: 'Each item needs productId, productName, quantity and unitPrice' });
+      return;
+    }
 
+    // The POS lets a cashier hand the terminal to a colleague; attribute the
+    // sale to whoever they verified, falling back to the logged-in user.
+    const attributedStaffId = staffId || req.user.userId;
+
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        res.status(400).json({ error: `Product ${item.productId} not found` });
+        return;
+      }
+      if (product.stock < item.quantity) {
+        res.status(400).json({
+          error: `Insufficient stock for ${product.name}: ${product.stock} available, ${item.quantity} requested`,
+        });
+        return;
+      }
+    }
+
+    // Only decrement once every line has been validated, so a rejected order
+    // never leaves partially deducted stock behind.
     for (const item of items) {
       await Product.findByIdAndUpdate(
         { _id: item.productId },
@@ -84,12 +110,26 @@ export async function createOrder(req, res) {
       total,
       paymentMethod,
       customerId,
-      staffId,
+      staffId: attributedStaffId,
       branchId,
       notes,
     });
 
-    await order.save();
+    // orderNumber is unique; on the rare collision regenerate and retry rather
+    // than failing the customer's sale.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        await order.save();
+        break;
+      } catch (error) {
+        if (error?.code === 11000 && attempt < 4) {
+          order.orderNumber = generateOrderNumber();
+          continue;
+        }
+        throw error;
+      }
+    }
+
     await order.populate([
       { path: 'staffId', select: 'name' },
       { path: 'customerId', select: 'name' },
@@ -98,8 +138,7 @@ export async function createOrder(req, res) {
 
     res.status(201).json({ order });
   } catch (error) {
-    console.error('Create order error:', error);
-    res.status(500).json({ error: 'Failed to create order' });
+    respondWithError(res, error, { context: 'Create order error', message: 'Failed to create order' });
   }
 }
 
@@ -119,8 +158,7 @@ export async function getOrder(req, res) {
 
     res.json({ order });
   } catch (error) {
-    console.error('Get order error:', error);
-    res.status(500).json({ error: 'Failed to get order' });
+    respondWithError(res, error, { context: 'Get order error', message: 'Failed to get order' });
   }
 }
 
@@ -147,7 +185,6 @@ export async function updateOrderStatus(req, res) {
 
     res.json({ order });
   } catch (error) {
-    console.error('Update order status error:', error);
-    res.status(500).json({ error: 'Failed to update order status' });
+    respondWithError(res, error, { context: 'Update order status error', message: 'Failed to update order status' });
   }
 }

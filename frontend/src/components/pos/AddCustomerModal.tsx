@@ -1,14 +1,15 @@
 'use client';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 import { Modal } from '@/components/ui/Modal';
 import { IconUser } from '@/components/ui/Icons';
-import { Customer } from './types';
 
 interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (customer: Customer) => void;
+  /** Resolves once the customer is persisted so the caller can link them to the sale. */
+  onAdd: (customer: { name: string; phone: string; email?: string }) => Promise<void> | void;
 }
 
 interface FormData {
@@ -21,22 +22,21 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    const newCustomer: Customer = {
-      id: crypto.randomUUID(),
-      name: data.name.trim(),
-      phone: data.phone.trim(),
-      email: data.email.trim(),
-      tier: 'bronze',
-      lastVisit: 'Today',
-      totalSpent: 0,
-      visitCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    reset();
-    setIsSubmitting(false);
-    onClose();
+    try {
+      await onAdd({
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        email: data.email.trim() || undefined,
+      });
+      reset();
+      onClose();
+    } catch {
+      toast.error('Could not add customer. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

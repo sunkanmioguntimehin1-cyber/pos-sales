@@ -87,44 +87,45 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
           />
         </div>
         <div>
-          <label className={labelCls}>Color *</label>
+          <label className={labelCls}>Selling Price *</label>
           <Controller
-            name="color"
+            name="price"
             control={control}
             render={({ field }) => (
               <>
                 <input
                   {...field}
-                  type="text"
-                  className={errors.color ? inputErrorCls : inputCls}
-                  placeholder="e.g., Black"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={errors.price ? inputErrorCls : inputCls}
+                  placeholder="0.00"
                 />
-                {errors.color && <span className="text-[11px] text-red-400 mt-1">{errors.color.message}</span>}
+                {errors.price && <span className="text-[11px] text-red-400 mt-1">{errors.price.message}</span>}
               </>
             )}
           />
         </div>
         <div>
-          <label className={labelCls}>Size *</label>
+          <label className={labelCls}>Cost Price</label>
           <Controller
-            name="size"
+            name="costPrice"
             control={control}
             render={({ field }) => (
-              <>
-                <input
-                  {...field}
-                  type="text"
-                  className={errors.size ? inputErrorCls : inputCls}
-                  placeholder="e.g., M"
-                />
-                {errors.size && <span className="text-[11px] text-red-400 mt-1">{errors.size.message}</span>}
-              </>
+              <input
+                {...field}
+                type="number"
+                min="0"
+                step="0.01"
+                className={inputCls}
+                placeholder="0.00"
+              />
             )}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
           <label className={labelCls}>On Hand *</label>
           <Controller
@@ -141,22 +142,6 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
                 />
                 {errors.onHand && <span className="text-[11px] text-red-400 mt-1">{errors.onHand.message}</span>}
               </>
-            )}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Reserved</label>
-          <Controller
-            name="reserved"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                min="0"
-                className={inputCls}
-                placeholder="0"
-              />
             )}
           />
         </div>
@@ -179,25 +164,6 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
             )}
           />
         </div>
-      </div>
-
-      <div className="mb-4">
-        <label className={labelCls}>Location *</label>
-        <Controller
-          name="location"
-          control={control}
-          render={({ field }) => (
-            <>
-              <input
-                {...field}
-                type="text"
-                className={errors.location ? inputErrorCls : inputCls}
-                placeholder="e.g., A-12"
-              />
-              {errors.location && <span className="text-[11px] text-red-400 mt-1">{errors.location.message}</span>}
-            </>
-          )}
-        />
       </div>
     </>
   );

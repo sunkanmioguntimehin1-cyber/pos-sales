@@ -2,13 +2,12 @@ export interface InventoryItem {
   id: string;
   productCode: string;
   name: string;
-  color: string;
-  size: string;
+  /** Category name resolved from the product's populated `categoryId`. */
+  category: string;
   onHand: number;
   reserved: number;
   available: number;
   reorder: number;
-  location: string;
   updated: string;
   status: 'ok' | 'low' | 'critical' | 'out';
 }
@@ -23,33 +22,36 @@ export interface StockLog {
   user: string;
 }
 
+export type StockAdjustmentType = 'receive' | 'damage' | 'correction' | 'transfer';
+
 export interface StockAdjustmentFormData {
   productCode: string;
-  type: string;
+  type: StockAdjustmentType | '';
   quantity: string;
   note: string;
 }
 
+/**
+ * Mirrors the product schema. The old form had colour/size/location/reserved
+ * fields with no backing columns, so they were dropped rather than silently
+ * discarded on save.
+ */
 export interface InventoryFormData {
   productCodeType: 'auto' | 'manual';
   productCode: string;
   name: string;
-  color: string;
-  size: string;
+  price: string;
+  costPrice: string;
   onHand: string;
-  reserved: string;
   reorder: string;
-  location: string;
 }
 
 export const emptyInventoryFormData: InventoryFormData = {
   productCodeType: 'auto',
   productCode: '',
   name: '',
-  color: '',
-  size: '',
+  price: '',
+  costPrice: '0',
   onHand: '',
-  reserved: '0',
   reorder: '',
-  location: '',
 };

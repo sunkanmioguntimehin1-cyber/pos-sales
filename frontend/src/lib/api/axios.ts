@@ -31,23 +31,36 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      const { status, data } = error.response;
+      const { status, data, config } = error.response;
       const message = data?.error || 'An error occurred';
+      const isLoginRequest = config?.url?.includes('/api/auth/login');
 
       switch (status) {
         case 401:
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('auth-storage');
-            window.location.href = '/login';
+          // A failed login is a 401 too, but bouncing to /login and claiming
+          // the session expired would be nonsense — just surface the message.
+          if (!isLoginRequest) {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token');
+              localStorage.removeItem('auth-storage');
+              window.location.href = '/login';
+            }
+            toast.error('Session expired. Please login again.');
+          } else {
+            toast.error(message);
           }
-          toast.error('Session expired. Please login again.');
           break;
         case 403:
           toast.error('Access denied.');
           break;
         case 404:
           toast.error(message);
+          break;
+        case 409:
+          toast.error(message);
+          break;
+        case 413:
+          toast.error('That file is too large. Please choose a smaller image.');
           break;
         case 422:
           toast.error(message);

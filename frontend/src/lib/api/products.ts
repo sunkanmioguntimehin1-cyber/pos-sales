@@ -1,15 +1,27 @@
 import api from './axios';
 
+export interface PopulatedCategory {
+  _id: string;
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface Product {
   id: string;
+  _id?: string;
   name: string;
   sku?: string;
   barcode?: string;
   description?: string;
   price: number;
   costPrice?: number;
-  categoryId?: string;
-  category?: { _id: string; name: string; color: string };
+  /**
+   * The backend populates the category *into* categoryId
+   * (`.populate('categoryId', 'name color')`), so this arrives as an object on
+   * any product that has a category and as a raw id string otherwise.
+   */
+  categoryId?: string | PopulatedCategory | null;
   image?: string;
   stock: number;
   lowStockThreshold: number;
@@ -28,6 +40,7 @@ export interface CreateProductData {
   image?: string;
   stock?: number;
   lowStockThreshold?: number;
+  isActive?: boolean;
 }
 
 export interface Category {
@@ -35,6 +48,20 @@ export interface Category {
   name: string;
   description?: string;
   color?: string;
+}
+
+/** Reads the category name off a product regardless of whether it is populated. */
+export function getProductCategoryName(product: Pick<Product, 'categoryId'>): string | undefined {
+  const { categoryId } = product;
+  if (categoryId && typeof categoryId === 'object') return categoryId.name;
+  return undefined;
+}
+
+/** Reads the category id off a product regardless of whether it is populated. */
+export function getProductCategoryId(product: Pick<Product, 'categoryId'>): string | undefined {
+  const { categoryId } = product;
+  if (!categoryId) return undefined;
+  return typeof categoryId === 'object' ? categoryId.id : categoryId;
 }
 
 export const productsApi = {
@@ -59,7 +86,7 @@ export const productsApi = {
   delete: (productId: string) => 
     api.delete<{ message: string }>(`/api/products/${productId}`).then(res => res.data),
   
-  adjustStock: (productId: string, adjustment: number, type?: 'set' | 'adjust') => 
+  adjustStock: (productId: string, adjustment: number, type?: 'set' | 'adjust') =>
     api.post<{ product: Product }>(
       `/api/products/${productId}/stock`,
       { adjustment, type }

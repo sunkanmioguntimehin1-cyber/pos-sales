@@ -2,9 +2,12 @@ import api from './axios';
 
 export interface Branch {
   id: string;
+  _id?: string;
   name: string;
   address?: string;
   phone?: string;
+  status: 'active' | 'inactive';
+  /** Exactly one branch may be the store default; the backend enforces this. */
   isDefault: boolean;
   createdAt: string;
 }
@@ -13,6 +16,7 @@ export interface CreateBranchData {
   name: string;
   address?: string;
   phone?: string;
+  status?: 'active' | 'inactive';
   isDefault?: boolean;
 }
 

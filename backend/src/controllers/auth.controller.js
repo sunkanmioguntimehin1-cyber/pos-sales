@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Staff } from '../models/staff.model.js';
 import { generateToken } from '../utils/jwt.js';
+import { respondWithError } from '../utils/respondWithError.js';
 
 export async function login(req, res) {
   try {
@@ -40,8 +41,7 @@ export async function login(req, res) {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    respondWithError(res, error, { context: 'Login error', message: 'Login failed' });
   }
 }
 
@@ -52,8 +52,24 @@ export async function getMe(req, res) {
       return;
     }
 
-    res.json({ user: req.user });
+    // Return the same shape as /login so the client can hydrate its store
+    // without a second normalisation step.
+    const staffMember = await Staff.findById(req.user.userId);
+
+    if (!staffMember) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json({
+      user: {
+        id: String(staffMember._id),
+        email: staffMember.email,
+        name: staffMember.name,
+        role: staffMember.role,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get user' });
+    respondWithError(res, error, { context: 'Get me error', message: 'Failed to get user' });
   }
 }

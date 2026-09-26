@@ -2,6 +2,7 @@
 import { IconStore, IconPackage, IconUser } from '@/components/ui/Icons';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { Product } from './types';
+import { getProductCategoryName } from '@/lib/hooks';
 
 interface BranchStock {
   branchId: number;
@@ -74,7 +75,7 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
                 </div>
                 <div>
                   <div className="text-[10px] text-subtle uppercase">Category</div>
-                  <div className="text-[12px] text-[var(--text)] font-semibold">{product.category?.name || '-'}</div>
+                  <div className="text-[12px] text-[var(--text)] font-semibold">{getProductCategoryName(product) || '-'}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">

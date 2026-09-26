@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { applyIdVirtual } from './plugins/applyIdVirtual.js';
 
 const customerSchema = new Schema(
   {
@@ -6,10 +7,10 @@ const customerSchema = new Schema(
     email: { type: String, lowercase: true, trim: true },
     phone: { type: String, trim: true },
     address: { type: String, trim: true },
-    tier: { 
-      type: String, 
-      enum: ['bronze', 'silver', 'gold', 'platinum'], 
-      default: 'bronze' 
+    tier: {
+      type: String,
+      enum: ['bronze', 'silver', 'gold', 'platinum'],
+      default: 'bronze'
     },
     totalSpent: { type: Number, default: 0, min: 0 },
     visitCount: { type: Number, default: 0, min: 0 },
@@ -23,5 +24,7 @@ customerSchema.index({ email: 1 }, { sparse: true });
 customerSchema.index({ phone: 1 }, { sparse: true });
 customerSchema.index({ tier: 1 });
 customerSchema.index({ name: 'text' });
+
+applyIdVirtual(customerSchema);
 
 export const Customer = mongoose.model('Customer', customerSchema);

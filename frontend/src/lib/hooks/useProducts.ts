@@ -1,8 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { productsApi, Product, CreateProductData, Category } from '@/lib/api';
+import { snapshotLists, patchLists, restoreLists } from './optimistic';
 
 export type { Product, Category, CreateProductData } from '@/lib/api/products';
+export { getProductCategoryName, getProductCategoryId } from '@/lib/api/products';
+
+const PRODUCTS = ['products'] as const;
+const CATEGORIES = ['categories'] as const;
 
 export function useProducts(filters?: { category?: string; search?: string; isActive?: boolean }) {
   return useQuery({
@@ -14,7 +19,9 @@ export function useProducts(filters?: { category?: string; search?: string; isAc
 
 export function useProduct(productId: string) {
   return useQuery({
-    queryKey: ['products', productId],
+    // Singular key: list queries live under ['products', filters], and sharing
+    // a prefix would make list mutations overwrite this single-object cache.
+    queryKey: ['product', productId],
     queryFn: () => productsApi.getById(productId),
     enabled: !!productId,
   });
@@ -26,33 +33,30 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (data: CreateProductData) => productsApi.create(data),
     onMutate: async (newProduct) => {
-      await queryClient.cancelQueries({ queryKey: ['products'] });
-      const previousProducts = queryClient.getQueryData<Product[]>(['products']);
+      const previous = await snapshotLists<Product>(queryClient, PRODUCTS);
 
-      queryClient.setQueryData<Product[]>(['products'], (old = []) => [
+      patchLists<Product>(queryClient, PRODUCTS, (old) => [
         ...old,
         {
           ...newProduct,
           id: `temp-${Date.now()}`,
           stock: newProduct.stock || 0,
           lowStockThreshold: newProduct.lowStockThreshold || 10,
-          isActive: true,
+          isActive: newProduct.isActive ?? true,
           createdAt: new Date().toISOString(),
         } as Product,
       ]);
 
-      return { previousProducts };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Product added successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousProducts) {
-        queryClient.setQueryData(['products'], context.previousProducts);
-      }
+      if (context?.previous) restoreLists<Product>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: PRODUCTS });
     },
   });
 }
@@ -64,27 +68,24 @@ export function useUpdateProduct() {
     mutationFn: ({ productId, data }: { productId: string; data: Partial<CreateProductData> }) =>
       productsApi.update(productId, data),
     onMutate: async ({ productId, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['products'] });
-      const previousProducts = queryClient.getQueryData<Product[]>(['products']);
+      const previous = await snapshotLists<Product>(queryClient, PRODUCTS);
 
-      queryClient.setQueryData<Product[]>(['products'], (old = []) =>
-        old.map(product =>
+      patchLists<Product>(queryClient, PRODUCTS, (old) =>
+        old.map((product) =>
           product.id === productId ? { ...product, ...data } : product
         )
       );
 
-      return { previousProducts };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Product updated successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousProducts) {
-        queryClient.setQueryData(['products'], context.previousProducts);
-      }
+      if (context?.previous) restoreLists<Product>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: PRODUCTS });
     },
   });
 }
@@ -95,25 +96,22 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: (productId: string) => productsApi.delete(productId),
     onMutate: async (productId) => {
-      await queryClient.cancelQueries({ queryKey: ['products'] });
-      const previousProducts = queryClient.getQueryData<Product[]>(['products']);
+      const previous = await snapshotLists<Product>(queryClient, PRODUCTS);
 
-      queryClient.setQueryData<Product[]>(['products'], (old = []) =>
-        old.filter(product => product.id !== productId)
+      patchLists<Product>(queryClient, PRODUCTS, (old) =>
+        old.filter((product) => product.id !== productId)
       );
 
-      return { previousProducts };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Product deleted successfully');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousProducts) {
-        queryClient.setQueryData(['products'], context.previousProducts);
-      }
+      if (context?.previous) restoreLists<Product>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: PRODUCTS });
     },
   });
 }
@@ -180,8 +178,8 @@ export function useDeleteCategory() {
       toast.success('Category deleted successfully');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: CATEGORIES });
+      queryClient.invalidateQueries({ queryKey: PRODUCTS });
     },
   });
 }

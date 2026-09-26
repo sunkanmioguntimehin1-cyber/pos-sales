@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { branchesApi, Branch, CreateBranchData } from '@/lib/api';
+import { snapshotLists, patchLists, restoreLists } from './optimistic';
 
 export type { Branch, CreateBranchData } from '@/lib/api/branches';
+
+const BRANCHES = ['branches'] as const;
 
 export function useBranches() {
   return useQuery({
@@ -14,7 +17,9 @@ export function useBranches() {
 
 export function useBranch(branchId: string) {
   return useQuery({
-    queryKey: ['branches', branchId],
+    // Singular key: the list lives under ['branches'], and sharing a prefix
+    // would make list mutations overwrite this single-object cache.
+    queryKey: ['branch', branchId],
     queryFn: () => branchesApi.getById(branchId),
     enabled: !!branchId,
   });
@@ -26,31 +31,29 @@ export function useCreateBranch() {
   return useMutation({
     mutationFn: (data: CreateBranchData) => branchesApi.create(data),
     onMutate: async (newBranch) => {
-      await queryClient.cancelQueries({ queryKey: ['branches'] });
-      const previousBranches = queryClient.getQueryData<Branch[]>(['branches']);
+      const previous = await snapshotLists<Branch>(queryClient, BRANCHES);
 
-      queryClient.setQueryData<Branch[]>(['branches'], (old = []) => [
+      patchLists<Branch>(queryClient, BRANCHES, (old) => [
         ...old,
         {
           ...newBranch,
           id: `temp-${Date.now()}`,
           isDefault: newBranch.isDefault || false,
+          status: newBranch.status || 'active',
           createdAt: new Date().toISOString(),
         } as Branch,
       ]);
 
-      return { previousBranches };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Branch added successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousBranches) {
-        queryClient.setQueryData(['branches'], context.previousBranches);
-      }
+      if (context?.previous) restoreLists<Branch>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      queryClient.invalidateQueries({ queryKey: BRANCHES });
     },
   });
 }
@@ -62,27 +65,24 @@ export function useUpdateBranch() {
     mutationFn: ({ branchId, data }: { branchId: string; data: Partial<CreateBranchData> }) =>
       branchesApi.update(branchId, data),
     onMutate: async ({ branchId, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['branches'] });
-      const previousBranches = queryClient.getQueryData<Branch[]>(['branches']);
+      const previous = await snapshotLists<Branch>(queryClient, BRANCHES);
 
-      queryClient.setQueryData<Branch[]>(['branches'], (old = []) =>
-        old.map(branch =>
+      patchLists<Branch>(queryClient, BRANCHES, (old) =>
+        old.map((branch) =>
           branch.id === branchId ? { ...branch, ...data } : branch
         )
       );
 
-      return { previousBranches };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Branch updated successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousBranches) {
-        queryClient.setQueryData(['branches'], context.previousBranches);
-      }
+      if (context?.previous) restoreLists<Branch>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      queryClient.invalidateQueries({ queryKey: BRANCHES });
     },
   });
 }
@@ -93,25 +93,22 @@ export function useDeleteBranch() {
   return useMutation({
     mutationFn: (branchId: string) => branchesApi.delete(branchId),
     onMutate: async (branchId) => {
-      await queryClient.cancelQueries({ queryKey: ['branches'] });
-      const previousBranches = queryClient.getQueryData<Branch[]>(['branches']);
+      const previous = await snapshotLists<Branch>(queryClient, BRANCHES);
 
-      queryClient.setQueryData<Branch[]>(['branches'], (old = []) =>
-        old.filter(branch => branch.id !== branchId)
+      patchLists<Branch>(queryClient, BRANCHES, (old) =>
+        old.filter((branch) => branch.id !== branchId)
       );
 
-      return { previousBranches };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Branch deleted successfully');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousBranches) {
-        queryClient.setQueryData(['branches'], context.previousBranches);
-      }
+      if (context?.previous) restoreLists<Branch>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      queryClient.invalidateQueries({ queryKey: BRANCHES });
     },
   });
 }

@@ -62,7 +62,10 @@ export function StaffScreen() {
       name: data.name,
       email: data.email,
       phone: data.phone,
-      pin: data.pin,
+      // Both are hashed server-side; an admin creating an account needs to
+      // actually set them, otherwise the member can never sign in.
+      password: data.password || undefined,
+      pin: data.pin || undefined,
       role: data.role,
       status: data.status,
     });
@@ -75,6 +78,9 @@ export function StaffScreen() {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        // Empty strings are dropped: sending '' would hash an empty password.
+        ...(data.password ? { password: data.password } : {}),
+        ...(data.pin ? { pin: data.pin } : {}),
         role: data.role,
         status: data.status,
       },

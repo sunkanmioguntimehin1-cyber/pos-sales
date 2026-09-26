@@ -14,10 +14,15 @@ interface ReceiptModalProps {
   subtotal: number;
   paymentMethod: string;
   staffName: string;
+  orderNumber?: string;
 }
 
-export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subtotal, paymentMethod, staffName }: ReceiptModalProps) {
-  const [email, setEmail] = useState(customer?.email || '');
+export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subtotal, paymentMethod, staffName, orderNumber }: ReceiptModalProps) {
+  // `email` was only seeded on mount, so opening the receipt for a customer
+  // created during the sale left the field blank. The parent keys this
+  // component on the order number, so each sale starts from clean state —
+  // no effect needed to sync the field.
+  const [email, setEmail] = useState(customer?.email ?? '');
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -33,7 +38,7 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
 
   const handleClose = () => {
     setSent(false);
-    setEmail(customer?.email || '');
+    setEmail(customer?.email ?? '');
     onClose();
   };
 
@@ -124,6 +129,12 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
                   <span>${total.toFixed(2)}</span>
                 </div>
                 <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                  {orderNumber && (
+                    <div className="flex justify-between text-[11px] text-muted">
+                      <span>Order</span>
+                      <span className="font-mono text-[var(--text)]">{orderNumber}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-[11px] text-muted">
                     <span>Payment</span>
                     <span className="text-[var(--text)]">{paymentMethod}</span>

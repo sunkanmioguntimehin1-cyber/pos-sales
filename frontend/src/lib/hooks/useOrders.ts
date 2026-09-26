@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { ordersApi, Order, CreateOrderData } from '@/lib/api';
 
 export type { Order, CreateOrderData } from '@/lib/api/orders';
+export { getOrderCustomerName, getOrderStaffName, getOrderBranchName } from '@/lib/api/orders';
 
 export function useOrders(filters?: { status?: string; startDate?: string; endDate?: string }) {
   return useQuery({
@@ -14,7 +15,9 @@ export function useOrders(filters?: { status?: string; startDate?: string; endDa
 
 export function useOrder(orderId: string) {
   return useQuery({
-    queryKey: ['orders', orderId],
+    // Singular key: list queries live under ['orders', filters], and sharing a
+    // prefix would make list mutations overwrite this single-object cache.
+    queryKey: ['order', orderId],
     queryFn: () => ordersApi.getById(orderId),
     enabled: !!orderId,
   });
@@ -31,6 +34,8 @@ export function useCreateOrder() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      // A completed sale bumps the customer's totalSpent/visitCount server-side.
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 }

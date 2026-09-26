@@ -109,16 +109,8 @@ export function StockHistoryPanel({ product, logs }: StockHistoryPanelProps) {
             <div className="text-[var(--text)] font-mono">{product.productCode}</div>
           </div>
           <div>
-            <div className="text-subtle">Location</div>
-            <div className="text-[var(--text)]">{product.location}</div>
-          </div>
-          <div>
-            <div className="text-subtle">Color</div>
-            <div className="text-[var(--text)]">{product.color}</div>
-          </div>
-          <div>
-            <div className="text-subtle">Size</div>
-            <div className="text-[var(--text)]">{product.size}</div>
+            <div className="text-subtle">Category</div>
+            <div className="text-[var(--text)]">{product.category}</div>
           </div>
           <div>
             <div className="text-subtle">Reorder Point</div>

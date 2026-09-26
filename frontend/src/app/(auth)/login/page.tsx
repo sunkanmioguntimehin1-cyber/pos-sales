@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@/lib/hooks";
 import { useAuthStore } from "@/store/authStore";
@@ -34,9 +34,13 @@ export default function LoginPage() {
     }
   };
 
-  if (loginMutation.isSuccess && user) {
-    router.push("/dashboard");
-  }
+  const isAuthenticated = loginMutation.isSuccess && Boolean(user);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">

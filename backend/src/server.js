@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './config/db.js';
+import { connectDB, disconnectDB } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import { seedAdmin } from './seed.js';
 import storeRoutes from './routes/store.routes.js';
@@ -20,8 +20,10 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Product images are uploaded inline as base64 data URLs, so the default 100kb
+// limit rejects them. Keep headroom above the 5MB the UI advertises.
+app.use(express.json({ limit: '6mb' }));
+app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -40,6 +42,21 @@ app.use((_req, res) => {
 });
 
 app.use((err, _req, res, _next) => {
+  if (err?.type === 'entity.too.large') {
+    res.status(413).json({ error: 'Payload too large' });
+    return;
+  }
+
+  if (err?.name === 'ValidationError') {
+    res.status(400).json({ error: err.message });
+    return;
+  }
+
+  if (err?.name === 'CastError') {
+    res.status(400).json({ error: `Invalid ${err.path}: ${err.value}` });
+    return;
+  }
+
   console.error('Error:', err);
   res.status(500).json({
     error: 'Internal server error',
@@ -50,11 +67,35 @@ app.use((err, _req, res, _next) => {
 async function startServer() {
   await connectDB();
   await seedAdmin();
-  app.listen(PORT, () => {
+
+  const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} is already in use.`);
+      console.error(`   Something else is listening there — check with: lsof -nP -iTCP:${PORT} -sTCP:LISTEN`);
+      if (PORT === 5000) {
+        console.error(`   On macOS, port 5000 is usually AirPlay Receiver (System Settings > General > AirDrop & Handoff).`);
+      }
+      console.error(`   Set a different PORT in backend/.env (and match NEXT_PUBLIC_API_URL in frontend/.env.local).`);
+    } else {
+      console.error('❌ Server error:', err.message);
+    }
+    process.exit(1);
   });
 }
 
 startServer();
+
+async function shutdown(signal) {
+  console.log(`\n${signal} received — shutting down`);
+  await disconnectDB();
+  process.exit(0);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 export default app;

@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { applyIdVirtual } from './plugins/applyIdVirtual.js';
 
 const staffSchema = new Schema(
   {
@@ -25,5 +26,7 @@ const staffSchema = new Schema(
 staffSchema.index({ email: 1 }, { sparse: true });
 staffSchema.index({ role: 1 });
 staffSchema.index({ status: 1 });
+
+applyIdVirtual(staffSchema);
 
 export const Staff = mongoose.model('Staff', staffSchema);

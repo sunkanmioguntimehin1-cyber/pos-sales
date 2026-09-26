@@ -1,174 +1,195 @@
-# POS SaaS Backend
+# POS Backend
 
-Express.js + MongoDB API for the POS SaaS application.
+Express + Mongoose REST API for the point-of-sale app.
+
+> This document describes the routes that **actually exist** in
+> `src/routes/`. There are no `/api/admin/*`, superadmin, or multi-tenant
+> endpoints — see [Not implemented](#not-implemented).
+
+## Requirements
+
+- Node.js 18+ (developed on 22.x)
+- A MongoDB connection string, **or** nothing at all in local development (see
+  [Database](#database))
 
 ## Setup
-
-### 1. Install Dependencies
 
 ```bash
 cd backend
 npm install
-```
-
-### 2. Configure Environment
-
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
 cp .env.example .env
 ```
 
-Edit `.env`:
-- `MONGODB_URI`: Your MongoDB Atlas connection string
-- `JWT_SECRET`: A strong secret key for JWT tokens
+### Environment variables
 
-### 3. Get MongoDB Atlas Connection String
+| Variable          | Default | Notes                                                                  |
+| ----------------- | ------- | ---------------------------------------------------------------------- |
+| `PORT`            | `5000`  | Local dev uses `5001` because macOS AirPlay Receiver holds `5000`.      |
+| `MONGODB_URI`     | _empty_ | Leave empty to force the in-memory fallback.                            |
+| `USE_MEMORY_DB`   | `false` | Set `true` to skip the Atlas probe and start in-memory immediately.     |
+| `FRONTEND_URL`    | _empty_ | Comma-separated list of allowed CORS origins.                           |
+| `JWT_SECRET`      | _empty_ | **Required for a real deployment.**                                    |
+| `NODE_ENV`        | `dev`   |                                                                       |
 
-1. Go to [MongoDB Atlas](https://cloud.mongodb.com)
-2. Create a cluster (free tier available)
-3. Click "Connect" → "Connect your application"
-4. Copy the connection string
-5. Replace `<password>` with your database user password
-
-### 4. Run the Server
-
-```bash
-npm run dev
-```
-
-Server runs on `http://localhost:5000`
-
-## API Endpoints
-
-### Authentication
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | Login (email + password) |
-| POST | `/api/auth/register` | Register superadmin (first time) |
-| GET | `/api/auth/me` | Get current user |
-
-### Superadmin (requires superadmin token)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/superadmin/stores` | Create new store |
-| GET | `/api/superadmin/stores` | List all stores |
-| GET | `/api/superadmin/stores/:id` | Get store details |
-| PUT | `/api/superadmin/stores/:id` | Update store |
-| DELETE | `/api/superadmin/stores/:id` | Delete store |
-
-### Store Operations (requires auth + X-Tenant-Id header)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/stores/me` | Get current store |
-| PUT | `/api/stores/me` | Update current store |
-
-### Staff
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/staff` | List staff (requires X-Tenant-Id) |
-| POST | `/api/staff` | Create staff member |
-| PUT | `/api/staff/:id` | Update staff member |
-| DELETE | `/api/staff/:id` | Delete staff member |
-| POST | `/api/staff/verify-pin` | Verify staff PIN |
-
-### Products
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products` | List products |
-| POST | `/api/products` | Create product |
-| PUT | `/api/products/:id` | Update product |
-| DELETE | `/api/products/:id` | Delete product |
-| POST | `/api/products/:id/stock` | Adjust stock |
-
-### Categories
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products/categories` | List categories |
-| POST | `/api/products/categories` | Create category |
-| PUT | `/api/products/categories/:id` | Update category |
-| DELETE | `/api/products/categories/:id` | Delete category |
-
-### Orders
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/orders` | List orders |
-| POST | `/api/orders` | Create order |
-| GET | `/api/orders/:id` | Get order details |
-| PUT | `/api/orders/:id/status` | Update order status |
-
-### Customers
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/customers` | List customers |
-| POST | `/api/customers` | Create customer |
-| PUT | `/api/customers/:id` | Update customer |
-| DELETE | `/api/customers/:id` | Delete customer |
-
-### Branches
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/branches` | List branches |
-| POST | `/api/branches` | Create branch |
-| PUT | `/api/branches/:id` | Update branch |
-| DELETE | `/api/branches/:id` | Delete branch |
-
-## Authentication Flow
-
-1. **Superadmin Registration**: `POST /api/auth/register` with email, password, name
-2. **Login**: `POST /api/auth/login` returns JWT token
-3. **Use Token**: Include `Authorization: Bearer <token>` header in requests
-4. **Store Access**: Include `X-Tenant-Id: <tenant_id>` header for store-specific routes
-
-## Example: Create a Store (Superadmin)
+## Running
 
 ```bash
-curl -X POST http://localhost:5000/api/superadmin/stores \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <superadmin_token>" \
-  -d '{
-    "name": "My Store",
-    "subdomain": "mystore",
-    "adminName": "John Doe",
-    "adminEmail": "john@mystore.com",
-    "adminPassword": "securepassword123"
-  }'
+npm run dev          # nodemon
+npm run dev:memory   # forces the in-memory MongoDB (MONGODB_URI=)
+npm start            # production
 ```
 
-## Example: Login as Store Admin
+Or use the repo-root helper, which starts it in the background, waits for
+`/api/health`, and writes a log + pidfile:
 
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@mystore.com",
-    "password": "securepassword123"
-  }'
+./scripts/dev-backend.sh          # start
+./scripts/dev-backend-stop.sh     # stop
 ```
 
-## Environment Variables
+Logs go to `/tmp/pos-backend.log`, pid to `/tmp/pos-backend.pid`.
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `MONGODB_URI` | MongoDB Atlas connection string | Yes |
-| `JWT_SECRET` | Secret key for JWT tokens | Yes |
-| `PORT` | Server port (default: 5000) | No |
-| `FRONTEND_URL` | Frontend URL for CORS (default: http://localhost:3000) | No |
-| `NODE_ENV` | Environment (development/production) | No |
+On start the server seeds an admin account if none exists:
 
-## Development
+- email: `admin@example.com`
+- password: `password`
 
-```bash
-npm run dev    # Run with hot reload
-npm run build  # Build for production
-npm start      # Run production build
-```
+**Change it before exposing this anywhere.**
+
+## Database
+
+`src/config/db.js` resolves the connection in this order:
+
+1. `USE_MEMORY_DB=true` → start an ephemeral `mongodb-memory-server`.
+2. `MONGODB_URI` set and reachable (5s probe) → connect to it.
+3. Otherwise → log a warning and start the in-memory server.
+
+The in-memory database is **wiped on every restart**, which includes product,
+category, staff, customer, order and branch data. Use a real `MONGODB_URI` for
+anything you need to keep.
+
+## API conventions
+
+- Every JSON resource response is wrapped: `{ products: [...] }`, `{ order: {...} }`.
+- Serialised documents expose both `id` (virtual) and `_id`, and omit `__v`.
+  See `src/models/plugins/applyIdVirtual.js`.
+- Populated references arrive **in place of** the id field, e.g. an order's
+  `staffId` is `{ _id, id, name }` when populated. Frontend code should read
+  `order.staffId.name`, not `order.staff`.
+- Error responses use `{ error: "..." }`. `src/utils/respondWithError.js` maps
+  Mongoose `ValidationError`/`CastError` to 400, duplicate keys to 409, and
+  oversized bodies to 413.
+- Request bodies are limited to 6 MB.
+- Only `/api/auth/login` and `/api/health` are public.
+
+## Endpoints
+
+### Health
+
+| Method | Path            | Description |
+| ------ | --------------- | ----------- |
+| GET    | `/api/health`   | `{ status, timestamp }` |
+
+### Auth — `/api/auth`
+
+| Method | Path  | Auth | Description |
+| ------ | ----- | ---- | ----------- |
+| POST   | `/login` | public | `{ email, password }` → `{ token, user: { id, email, name, role } }` |
+| GET    | `/me`    | bearer | Same `{ id, email, name, role }` shape as login |
+
+### Store — `/api/store` (bearer)
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET    | `/`   | Single store document, auto-created if missing. |
+| PUT    | `/`   | Updates `name`, `description`, `logo`, and `settings` (`primaryColor`, `accentColor`, `theme`, `paymentMethods`). Fields are merged individually. |
+
+### Staff — `/api/staff`
+
+| Method | Path              | Description |
+| ------ | ----------------- | ----------- |
+| GET    | `/`               | Filters: `role`, `status`, `search`. |
+| POST   | `/`               | `name`, `role` required; `email`, `phone`, `password`, `pin`, `status` optional. Password/PIN are bcrypt-hashed. |
+| POST   | `/verify-pin`     | `{ staffId, pin }` → `{ success, staff }` |
+| GET    | `/:staffId`       | Single staff member (password/PIN hashes stripped). |
+| PUT    | `/:staffId`       | Partial update; send `password`/`pin` to change credentials. |
+| DELETE | `/:staffId`       | |
+
+### Products & categories — `/api/products`
+
+| Method | Path                     | Description |
+| ------ | ------------------------ | ----------- |
+| GET    | `/categories`            | |
+| POST   | `/categories`            | `name` required. |
+| PUT    | `/categories/:categoryId`| |
+| DELETE | `/categories/:categoryId`| |
+| GET    | `/`                      | Filters: `category` (**an id**), `search`, `isActive`. |
+| POST   | `/`                      | `name`, `price` required. |
+| GET    | `/:productId`            | Single product, `categoryId` populated. |
+| PUT    | `/:productId`            | Partial update. |
+| DELETE | `/:productId`            | |
+| POST   | `/:productId/stock`      | `{ adjustment, type: 'set' \| 'adjust' }` — `set` treats `adjustment` as the absolute new count, `adjust` adds it (negative to remove). |
+
+`/categories` is registered before `/:productId` so it is not shadowed by the
+dynamic route.
+
+### Orders — `/api/orders`
+
+| Method | Path                | Description |
+| ------ | ------------------- | ----------- |
+| GET    | `/`                 | Filters: `status`, `startDate`, `endDate` (ISO dates). |
+| POST   | `/`                 | See below. |
+| GET    | `/:orderId`         | Single order with `customerId`, `staffId`, `branchId` populated. |
+| PUT    | `/:orderId/status`  | `{ status }` — one of `pending`, `completed`, `cancelled`, `refunded`. |
+
+`POST /api/orders`:
+
+- `items[]` requires `productId`, `productName`, `quantity`, `unitPrice`, `totalPrice`.
+- `subtotal`, `tax`, `total` are required; `tax` defaults to `0`.
+- `staffId` is **required**. It falls back to the authenticated user's id when
+  omitted, so the POS screen can attribute a sale to the cashier who rang it up.
+- `customerId` and `branchId` are optional.
+- `status` is not accepted on create; it defaults to `completed`. Use
+  `PUT /:orderId/status` to change it.
+- Every referenced product is loaded and its stock validated **before** anything
+  is written. Stock is only decremented once all items pass.
+- On success the customer's `totalSpent`, `visitCount` and `lastVisit` are updated.
+- Order numbers are `ORD-YYYYMMDD-XXXXXX`; a duplicate key collision retries
+  with a fresh number.
+
+### Branches — `/api/branches`
+
+| Method | Path          | Description |
+| ------ | ------------- | ----------- |
+| GET    | `/`           | |
+| POST   | `/`           | `name` required; `address`, `phone`, `status` (`active`/`inactive`), `isDefault`. |
+| GET    | `/:branchId`  | |
+| PUT    | `/:branchId`  | Partial update. |
+| DELETE | `/:branchId`  | |
+
+`isDefault` (which branch a sale belongs to) and `status` (active/inactive) are
+independent fields. The controller clears `isDefault` from other branches when
+one is set as default.
+
+### Customers — `/api/customers`
+
+| Method | Path            | Description |
+| ------ | --------------- | ----------- |
+| GET    | `/`             | Filters: `tier` (`bronze`/`silver`/`gold`/`platinum`), `search`. |
+| POST   | `/`             | `name` required. `tier` is server-assigned (`bronze`) — it cannot be set on create. |
+| GET    | `/:customerId`  | |
+| PUT    | `/:customerId`  | Partial update. |
+| DELETE | `/:customerId`  | |
+
+## Not implemented
+
+These are referenced elsewhere in the project but have no route, controller or
+model behind them. Do not expect them to work:
+
+- Superadmin / platform-admin endpoints
+- Multi-tenancy (no `storeId` scoping on any model — a single store per database)
+- Per-branch inventory (products have one `stock` number, not a per-branch split)
+- Product image upload (products have an `image` URL field, no storage backend)
+- Email delivery (receipt "send" is frontend-only)
+- Order refunds/returns beyond setting `status` to `refunded`
+- Sales reports (the Reports screen is computed client-side from the orders list)

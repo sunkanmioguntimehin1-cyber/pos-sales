@@ -1,5 +1,19 @@
 import bcrypt from 'bcryptjs';
 import { Staff } from '../models/staff.model.js';
+import { respondWithError } from '../utils/respondWithError.js';
+
+/** Strip the password/PIN hashes before sending a staff record to a client. */
+function toPublicStaff(s) {
+  return {
+    id: String(s._id),
+    name: s.name,
+    email: s.email,
+    phone: s.phone,
+    role: s.role,
+    status: s.status,
+    createdAt: s.createdAt,
+  };
+}
 
 export async function getStaff(req, res) {
   try {
@@ -24,20 +38,26 @@ export async function getStaff(req, res) {
 
     const staff = await Staff.find(filter).sort({ createdAt: -1 });
 
-    const staffWithoutHash = staff.map(s => ({
-      id: s._id,
-      name: s.name,
-      email: s.email,
-      phone: s.phone,
-      role: s.role,
-      status: s.status,
-      createdAt: s.createdAt,
-    }));
-
-    res.json({ staff: staffWithoutHash });
+    res.json({ staff: staff.map(toPublicStaff) });
   } catch (error) {
-    console.error('Get staff error:', error);
-    res.status(500).json({ error: 'Failed to get staff' });
+    respondWithError(res, error, { context: 'Get staff error', message: 'Failed to get staff' });
+  }
+}
+
+export async function getStaffMember(req, res) {
+  try {
+    const { staffId } = req.params;
+
+    const staff = await Staff.findById(staffId);
+
+    if (!staff) {
+      res.status(404).json({ error: 'Staff not found' });
+      return;
+    }
+
+    res.json({ staff: toPublicStaff(staff) });
+  } catch (error) {
+    respondWithError(res, error, { context: 'Get staff member error', message: 'Failed to get staff' });
   }
 }
 
@@ -70,20 +90,9 @@ export async function createStaff(req, res) {
 
     await staff.save();
 
-    res.status(201).json({
-      staff: {
-        id: staff._id,
-        name: staff.name,
-        email: staff.email,
-        phone: staff.phone,
-        role: staff.role,
-        status: staff.status,
-        createdAt: staff.createdAt,
-      },
-    });
+    res.status(201).json({ staff: toPublicStaff(staff) });
   } catch (error) {
-    console.error('Create staff error:', error);
-    res.status(500).json({ error: 'Failed to create staff' });
+    respondWithError(res, error, { context: 'Create staff error', message: 'Failed to create staff' });
   }
 }
 
@@ -108,20 +117,9 @@ export async function updateStaff(req, res) {
 
     await staff.save();
 
-    res.json({
-      staff: {
-        id: staff._id,
-        name: staff.name,
-        email: staff.email,
-        phone: staff.phone,
-        role: staff.role,
-        status: staff.status,
-        createdAt: staff.createdAt,
-      },
-    });
+    res.json({ staff: toPublicStaff(staff) });
   } catch (error) {
-    console.error('Update staff error:', error);
-    res.status(500).json({ error: 'Failed to update staff' });
+    respondWithError(res, error, { context: 'Update staff error', message: 'Failed to update staff' });
   }
 }
 
@@ -137,8 +135,7 @@ export async function deleteStaff(req, res) {
 
     res.json({ message: 'Staff deleted successfully' });
   } catch (error) {
-    console.error('Delete staff error:', error);
-    res.status(500).json({ error: 'Failed to delete staff' });
+    respondWithError(res, error, { context: 'Delete staff error', message: 'Failed to delete staff' });
   }
 }
 
@@ -177,7 +174,6 @@ export async function verifyPin(req, res) {
       },
     });
   } catch (error) {
-    console.error('Verify PIN error:', error);
-    res.status(500).json({ error: 'Failed to verify PIN' });
+    respondWithError(res, error, { context: 'Verify PIN error', message: 'Failed to verify PIN' });
   }
 }

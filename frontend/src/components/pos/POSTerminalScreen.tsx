@@ -1,5 +1,6 @@
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import {
   IconSearch, IconScan, IconTrash, IconPlus, IconMinus,
   IconPrinter, IconCheck, IconX, IconInfo, IconUser, IconChevronDown,
@@ -11,12 +12,14 @@ import { AddCustomerModal } from './AddCustomerModal';
 import { StaffSelectionModal } from './StaffSelectionModal';
 import { ReceiptModal } from './ReceiptModal';
 import {
-  Product, CartItem, Customer, CATEGORIES,
-  getBranchInventory, SplitPayment, PaymentMethod, BANKS, POS_MACHINES, BankType, POSMachineType
+  Product, CartItem, Customer, getBranchInventory, SplitPayment, PaymentMethod, BANKS, POS_MACHINES, BankType, POSMachineType
 } from './types';
 import { Staff } from '@/components/staff/types';
-import { useProducts, useCustomers, useStaff } from '@/lib/hooks';
-import { Skeleton } from '@/components/ui/Skeleton';
+import {
+  useProducts, useCategories, useCustomers, useCreateCustomer, useStaff, useCreateOrder, useBranches,
+  useStore,
+  getProductCategoryId, getProductCategoryName,
+} from '@/lib/hooks';
 
 type PayView = 'methods' | 'cash' | 'transfer' | 'pos' | 'split' | 'success';
 
@@ -43,14 +46,31 @@ const posLabels: Record<POSMachineType, string> = {
   firstbank_pos: 'FirstBank POS',
 };
 
+/** Money is sent with at most 2 decimals to avoid float noise in the schema. */
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+const ALL_CATEGORIES = 'all';
+
 export function POSTerminalScreen() {
   const { data: products = [], isLoading: isLoadingProducts } = useProducts({ isActive: true });
+  const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
   const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
   const { data: staffList = [], isLoading: isLoadingStaff } = useStaff({ status: 'active' });
+  const { data: branches = [] } = useBranches();
+  const { data: store } = useStore();
+  const createOrder = useCreateOrder();
+  const createCustomer = useCreateCustomer();
+
+  /** Payment methods disabled in Settings are not offered at the till. */
+  const payConfig = store?.settings?.paymentMethods;
+  const cashEnabled = payConfig?.cash ?? true;
+  const transferEnabled = payConfig ? payConfig.transfer.enabled && (payConfig.transfer.gtb || payConfig.transfer.firstbank) : true;
+  const posEnabled = payConfig ? payConfig.pos.enabled && (payConfig.pos.gtb || payConfig.pos.firstbank) : true;
+  const availableMethods = [cashEnabled, transferEnabled, posEnabled].filter(Boolean).length;
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
-  const [activeCat, setActiveCat] = useState('All');
+  const [activeCat, setActiveCat] = useState<string>(ALL_CATEGORIES);
   const [payView, setPayView] = useState<PayView>('methods');
   const [cashInput, setCashInput] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -74,12 +94,13 @@ export function POSTerminalScreen() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [completedSaleData, setCompletedSaleData] = useState<{
+    orderNumber: string;
     paymentMethod: string;
     staffName: string;
   } | null>(null);
 
   const filtered = products.filter((p: Product) =>
-    (activeCat === 'All' || p.category?.name === activeCat) &&
+    (activeCat === ALL_CATEGORIES || getProductCategoryId(p) === activeCat) &&
     (p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -89,20 +110,24 @@ export function POSTerminalScreen() {
     (c.phone?.includes(customerSearch))
   );
 
-  const addItem = useCallback((p: Product) => {
+  const isLoading = isLoadingProducts || isLoadingCategories || isLoadingCustomers || isLoadingStaff;
+
+  // No manual useCallback here: React Compiler already memoizes, and the
+  // hand-written dep arrays tripped its "existing memoization" check.
+  const addItem = (p: Product) => {
     setCart(prev => {
       const ex = prev.find(c => c.id === p.id);
       return ex ? prev.map(c => c.id === p.id ? { ...c, qty: c.qty + 1 } : c) : [...prev, { ...p, qty: 1 }];
     });
-  }, []);
+  };
 
-  const updateQty = useCallback((id: string, delta: number) => {
+  const updateQty = (id: string, delta: number) => {
     setCart(prev => prev.map(c => c.id === id ? { ...c, qty: Math.max(0, c.qty + delta) } : c).filter(c => c.qty > 0));
-  }, []);
+  };
 
-  const removeItem = useCallback((id: string) => setCart(prev => prev.filter(c => c.id !== id)), []);
-  
-  const clearCart = useCallback(() => {
+  const removeItem = (id: string) => setCart(prev => prev.filter(c => c.id !== id));
+
+  const clearCart = () => {
     setCart([]);
     setPayView('methods');
     setCashInput('');
@@ -115,7 +140,7 @@ export function POSTerminalScreen() {
     setSelectedStaff(null);
     setCompletedSaleData(null);
     setIsReceiptModalOpen(false);
-  }, []);
+  };
 
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.qty, 0), [cart]);
   const tax = subtotal * 0.0825;
@@ -142,37 +167,74 @@ export function POSTerminalScreen() {
   };
 
   const processPayment = () => {
+    if (cart.length === 0) {
+      toast.error('Add at least one product before completing a sale');
+      return;
+    }
     setIsStaffModalOpen(true);
   };
 
-  const handleStaffSelect = (staff: Staff) => {
-    setSelectedStaff(staff);
-    
-    let methodStr = '';
-    if (payView === 'cash') {
-      methodStr = 'Cash';
-    } else if (payView === 'transfer' && selectedBank) {
-      methodStr = `Transfer (${bankLabels[selectedBank]})`;
-    } else if (payView === 'pos' && selectedPOS) {
-      methodStr = `POS (${posLabels[selectedPOS]})`;
-    } else if (payView === 'split') {
-      methodStr = splitPayments.map(p => {
+  /** Human-readable summary of whichever payment mix is active. */
+  const buildPaymentLabel = () => {
+    if (payView === 'cash') return 'Cash';
+    if (payView === 'transfer' && selectedBank) return `Transfer (${bankLabels[selectedBank]})`;
+    if (payView === 'pos' && selectedPOS) return `POS (${posLabels[selectedPOS]})`;
+    if (payView === 'split') {
+      return splitPayments.map(p => {
         if (p.method === 'cash') return 'Cash';
         if (p.method === 'transfer' && p.bank) return `Transfer (${bankLabels[p.bank]})`;
         if (p.method === 'pos' && p.posMachine) return `POS (${posLabels[p.posMachine]})`;
         return p.method;
       }).join(' + ');
     }
+    return 'Cash';
+  };
 
-    setCompletedSaleData({
-      paymentMethod: methodStr,
-      staffName: staff.name,
-    });
+  const handleStaffSelect = async (staff: Staff) => {
+    setSelectedStaff(staff);
+    setIsStaffModalOpen(false);
 
-    setPayView('success');
-    setTimeout(() => {
-      setIsReceiptModalOpen(true);
-    }, 500);
+    const defaultBranch = branches.find(b => b.isDefault) || branches[0];
+
+    // Round the totals before sending: money stored as 6.0000000001 in Mongo
+    // would fail the schema's min checks downstream and skew reports.
+    const orderSubtotal = round2(subtotal);
+    const orderTax = round2(tax);
+    const orderTotal = round2(total);
+
+    try {
+      const order = await createOrder.mutateAsync({
+        items: cart.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          quantity: item.qty,
+          unitPrice: item.price,
+          totalPrice: round2(item.price * item.qty),
+        })),
+        subtotal: orderSubtotal,
+        tax: orderTax,
+        total: orderTotal,
+        paymentMethod: buildPaymentLabel(),
+        staffId: staff.id,
+        customerId: selectedCustomer?.id,
+        branchId: defaultBranch?.id,
+      });
+
+      setCompletedSaleData({
+        orderNumber: order.orderNumber,
+        paymentMethod: buildPaymentLabel(),
+        staffName: staff.name,
+      });
+
+      setPayView('success');
+      setTimeout(() => {
+        setIsReceiptModalOpen(true);
+      }, 500);
+    } catch {
+      // The interceptor already surfaces the server error; keep the cart intact
+      // so the cashier can retry rather than losing the sale.
+      setPayView('methods');
+    }
   };
 
   const handleReceiptClose = () => {
@@ -200,8 +262,15 @@ export function POSTerminalScreen() {
     setSelectedCustomer(null);
   };
 
-  const handleAddCustomer = () => {
-    setIsAddCustomerOpen(false);
+  const handleAddCustomer = async (data: { name: string; phone: string; email?: string }) => {
+    // `tier` is server-assigned (always bronze on create), so it is not sent.
+    const created = await createCustomer.mutateAsync({
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+    });
+    // Link the new customer to the open sale so the order is attributed to them.
+    setSelectedCustomer(created);
   };
 
   const goBack = () => {
@@ -259,22 +328,33 @@ export function POSTerminalScreen() {
         </div>
 
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-          {CATEGORIES.map(cat => (
+          <button
+            onClick={() => setActiveCat(ALL_CATEGORIES)}
+            className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all whitespace-nowrap ${
+              activeCat === ALL_CATEGORIES
+                ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                : 'bg-[var(--surface-2)] border-[var(--border)] text-subtle hover:border-[var(--border-strong)] hover:text-muted'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(cat => (
             <button
-              key={cat}
-              onClick={() => setActiveCat(cat)}
+              key={cat.id}
+              onClick={() => setActiveCat(cat.id)}
               className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all whitespace-nowrap ${
-                activeCat === cat
+                activeCat === cat.id
                   ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
                   : 'bg-[var(--surface-2)] border-[var(--border)] text-subtle hover:border-[var(--border-strong)] hover:text-muted'
               }`}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
 
         <div className="flex-1 overflow-y-auto grid grid-cols-[repeat(auto-fill,minmax(145px,1fr))] gap-2.5 content-start pr-0.5">
+          {isLoadingProducts && <div className="col-span-full text-center py-10 text-subtle text-xs">Loading products…</div>}
           {filtered.map(p => {
             const inCart = cart.find(c => c.id === p.id);
             return (
@@ -292,7 +372,7 @@ export function POSTerminalScreen() {
                   <div className="text-[11px] font-bold text-[var(--text)] mb-0.5 leading-snug">{p.name}</div>
                   <div className="font-mono text-[10px] text-subtle mb-1.5">{p.sku}</div>
                   <div className="text-[15px] font-extrabold text-blue-400 tabular-nums">${p.price.toFixed(2)}</div>
-                  <div className="text-[9px] text-subtle mt-0.5">{p.category?.name}</div>
+                  <div className="text-[9px] text-subtle mt-0.5">{getProductCategoryName(p)}</div>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleProductInfo(p); }}
@@ -304,7 +384,7 @@ export function POSTerminalScreen() {
               </div>
             );
           })}
-          {!filtered.length && (
+          {!isLoadingProducts && !filtered.length && (
             <div className="col-span-full text-center py-10 text-subtle text-xs">No products found</div>
           )}
         </div>
@@ -424,6 +504,11 @@ export function POSTerminalScreen() {
             </div>
             <div className="text-xl font-extrabold text-emerald-400">Payment Successful!</div>
             <div className="text-[30px] font-extrabold text-[var(--text)] tabular-nums">${total.toFixed(2)}</div>
+            {completedSaleData?.orderNumber && (
+              <div className="text-[11px] text-subtle">
+                Order <span className="font-mono text-muted">{completedSaleData.orderNumber}</span>
+              </div>
+            )}
             {selectedCustomer && (
               <div className="text-[12px] text-muted">
                 Purchase recorded for <span className="text-[var(--text)] font-semibold">{selectedCustomer.name}</span>
@@ -494,39 +579,51 @@ export function POSTerminalScreen() {
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-2">
+                {cashEnabled && (
+                  <button
+                    disabled={cart.length === 0}
+                    onClick={() => setPayView('cash')}
+                    className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
+                  >
+                    <span className="text-lg">💵</span>
+                    <span className="text-[10px] font-bold text-muted">Cash</span>
+                  </button>
+                )}
+                {transferEnabled && (
+                  <button
+                    disabled={cart.length === 0}
+                    onClick={() => setPayView('transfer')}
+                    className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
+                  >
+                    <span className="text-lg">🏦</span>
+                    <span className="text-[10px] font-bold text-muted">Transfer</span>
+                  </button>
+                )}
+                {posEnabled && (
+                  <button
+                    disabled={cart.length === 0}
+                    onClick={() => setPayView('pos')}
+                    className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
+                  >
+                    <span className="text-lg">💳</span>
+                    <span className="text-[10px] font-bold text-muted">POS Machine</span>
+                  </button>
+                )}
                 <button
-                  disabled={cart.length === 0}
-                  onClick={() => setPayView('cash')}
-                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
-                >
-                  <span className="text-lg">💵</span>
-                  <span className="text-[10px] font-bold text-muted">Cash</span>
-                </button>
-                <button
-                  disabled={cart.length === 0}
-                  onClick={() => setPayView('transfer')}
-                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
-                >
-                  <span className="text-lg">🏦</span>
-                  <span className="text-[10px] font-bold text-muted">Transfer</span>
-                </button>
-                <button
-                  disabled={cart.length === 0}
-                  onClick={() => setPayView('pos')}
-                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
-                >
-                  <span className="text-lg">💳</span>
-                  <span className="text-[10px] font-bold text-muted">POS Machine</span>
-                </button>
-                <button
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || availableMethods < 2}
                   onClick={() => setPayView('split')}
+                  title={availableMethods < 2 ? 'Split payment needs at least two enabled methods' : undefined}
                   className="h-12 flex flex-col items-center justify-center gap-1 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 hover:border-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
                 >
                     <span className="text-lg"><IconRefresh size={16} className="text-blue-400" /></span>
                   <span className="text-[10px] font-bold text-blue-400">Split Payment</span>
                 </button>
               </div>
+              {availableMethods === 0 && (
+                <div className="mb-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-400">
+                  All payment methods are disabled. Enable at least one in Settings → Payment Methods.
+                </div>
+              )}
               <button disabled={cart.length === 0} className="w-full h-9 flex items-center justify-center gap-1.5 bg-transparent border border-[var(--border)] text-muted hover:text-[var(--text)] hover:border-[var(--border-strong)] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-xs font-semibold transition-all">
                 <IconPrinter size={12} /> Print Receipt
               </button>
@@ -598,7 +695,7 @@ export function POSTerminalScreen() {
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-2">Select Bank</div>
               <div className="grid grid-cols-2 gap-2">
-                {BANKS.map(bank => (
+                {BANKS.filter(b => payConfig?.transfer[b.id] ?? true).map(bank => (
                   <button
                     key={bank.id}
                     onClick={() => setSelectedBank(bank.id)}
@@ -648,7 +745,7 @@ export function POSTerminalScreen() {
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-2">Select POS Machine</div>
               <div className="grid grid-cols-2 gap-2">
-                {POS_MACHINES.map(pos => (
+                {POS_MACHINES.filter(m => payConfig?.pos[m.id === 'gtb_pos' ? 'gtb' : 'firstbank'] ?? true).map(pos => (
                   <button
                     key={pos.id}
                     onClick={() => setSelectedPOS(pos.id)}
@@ -893,8 +990,9 @@ export function POSTerminalScreen() {
         staffList={staffList}
       />
 
-      {/* Receipt Modal */}
+      {/* Receipt Modal — keyed per sale so its state (email, sent) starts fresh */}
       <ReceiptModal
+        key={completedSaleData?.orderNumber ?? 'receipt'}
         isOpen={isReceiptModalOpen}
         onClose={handleReceiptClose}
         customer={selectedCustomer}
@@ -904,6 +1002,7 @@ export function POSTerminalScreen() {
         subtotal={subtotal}
         paymentMethod={completedSaleData?.paymentMethod || ''}
         staffName={completedSaleData?.staffName || ''}
+        orderNumber={completedSaleData?.orderNumber}
       />
     </div>
   );

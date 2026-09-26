@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { staffApi, Staff, CreateStaffData, UpdateStaffData } from '@/lib/api';
+import { snapshotLists, patchLists, restoreLists } from './optimistic';
 
 export type { Staff } from '@/lib/api/staff';
+
+const STAFF = ['staff'] as const;
 
 export function useStaff(filters?: { role?: string; status?: string; search?: string }) {
   return useQuery({
@@ -14,7 +17,9 @@ export function useStaff(filters?: { role?: string; status?: string; search?: st
 
 export function useStaffById(staffId: string) {
   return useQuery({
-    queryKey: ['staff', staffId],
+    // Singular key: list queries live under ['staff', filters], and sharing a
+    // prefix would make list mutations overwrite this single-object cache.
+    queryKey: ['staffMember', staffId],
     queryFn: () => staffApi.getById(staffId),
     enabled: !!staffId,
   });
@@ -26,10 +31,9 @@ export function useCreateStaff() {
   return useMutation({
     mutationFn: (data: CreateStaffData) => staffApi.create(data),
     onMutate: async (newStaff) => {
-      await queryClient.cancelQueries({ queryKey: ['staff'] });
-      const previousStaff = queryClient.getQueryData<Staff[]>(['staff']);
+      const previous = await snapshotLists<Staff>(queryClient, STAFF);
 
-      queryClient.setQueryData<Staff[]>(['staff'], (old = []) => [
+      patchLists<Staff>(queryClient, STAFF, (old) => [
         ...old,
         {
           ...newStaff,
@@ -39,18 +43,16 @@ export function useCreateStaff() {
         } as Staff,
       ]);
 
-      return { previousStaff };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Staff member added successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousStaff) {
-        queryClient.setQueryData(['staff'], context.previousStaff);
-      }
+      if (context?.previous) restoreLists<Staff>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: STAFF });
     },
   });
 }
@@ -62,27 +64,24 @@ export function useUpdateStaff() {
     mutationFn: ({ staffId, data }: { staffId: string; data: UpdateStaffData }) =>
       staffApi.update(staffId, data),
     onMutate: async ({ staffId, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['staff'] });
-      const previousStaff = queryClient.getQueryData<Staff[]>(['staff']);
+      const previous = await snapshotLists<Staff>(queryClient, STAFF);
 
-      queryClient.setQueryData<Staff[]>(['staff'], (old = []) =>
-        old.map(staff =>
+      patchLists<Staff>(queryClient, STAFF, (old) =>
+        old.map((staff) =>
           staff.id === staffId ? { ...staff, ...data } : staff
         )
       );
 
-      return { previousStaff };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Staff member updated successfully!');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousStaff) {
-        queryClient.setQueryData(['staff'], context.previousStaff);
-      }
+      if (context?.previous) restoreLists<Staff>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: STAFF });
     },
   });
 }
@@ -93,25 +92,22 @@ export function useDeleteStaff() {
   return useMutation({
     mutationFn: (staffId: string) => staffApi.delete(staffId),
     onMutate: async (staffId) => {
-      await queryClient.cancelQueries({ queryKey: ['staff'] });
-      const previousStaff = queryClient.getQueryData<Staff[]>(['staff']);
+      const previous = await snapshotLists<Staff>(queryClient, STAFF);
 
-      queryClient.setQueryData<Staff[]>(['staff'], (old = []) =>
-        old.filter(staff => staff.id !== staffId)
+      patchLists<Staff>(queryClient, STAFF, (old) =>
+        old.filter((staff) => staff.id !== staffId)
       );
 
-      return { previousStaff };
+      return { previous };
     },
     onSuccess: () => {
       toast.success('Staff member deleted successfully');
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousStaff) {
-        queryClient.setQueryData(['staff'], context.previousStaff);
-      }
+      if (context?.previous) restoreLists<Staff>(queryClient, context.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: STAFF });
     },
   });
 }

@@ -1,62 +1,57 @@
 'use client';
 import { useState } from 'react';
 import { IconCheck } from '@/components/ui/Icons';
+import { useStore, useUpdateStore } from '@/lib/hooks';
+import type { PaymentMethodConfig } from '@/lib/api/store';
 
-interface PaymentMethodSettingsProps {
-  onUpdate?: (methods: PaymentMethodConfig) => void;
-}
+const DEFAULT_METHODS: PaymentMethodConfig = {
+  cash: true,
+  transfer: { enabled: true, gtb: true, firstbank: true },
+  pos: { enabled: true, gtb: true, firstbank: true },
+};
 
-interface PaymentMethodConfig {
-  cash: boolean;
-  transfer: {
-    gtb: boolean;
-    firstbank: boolean;
-  };
-  pos: {
-    gtb: boolean;
-    firstbank: boolean;
-  };
-}
+export function PaymentMethodSettings() {
+  const { data: store } = useStore();
+  const updateStore = useUpdateStore();
 
-export function PaymentMethodSettings({ onUpdate }: PaymentMethodSettingsProps) {
-  const [methods, setMethods] = useState<PaymentMethodConfig>({
-    cash: true,
-    transfer: {
-      gtb: true,
-      firstbank: true,
-    },
-    pos: {
-      gtb: true,
-      firstbank: true,
-    },
-  });
+  // Local copy of the persisted config. `null` means "not edited yet", so the
+  // server value stays authoritative until the first toggle — no effect needed.
+  const [methods, setMethods] = useState<PaymentMethodConfig | null>(null);
+  const current = methods ?? store?.settings?.paymentMethods ?? DEFAULT_METHODS;
 
-  const toggleMethod = (key: keyof PaymentMethodConfig) => {
-    const updated = { ...methods, [key]: !methods[key] };
-    setMethods(updated);
-    onUpdate?.(updated);
+  const persist = (next: PaymentMethodConfig) => {
+    setMethods(next);
+    updateStore.mutate({ settings: { ...store?.settings, paymentMethods: next } });
   };
 
-  const toggleBank = (bank: 'gtb' | 'firstbank') => {
-    const updated = {
-      ...methods,
-      transfer: { ...methods.transfer, [bank]: !methods.transfer[bank] },
-    };
-    setMethods(updated);
-    onUpdate?.(updated);
+  /**
+   * The previous version called `!methods[key]` on the `transfer`/`pos`
+   * *objects*, which is always false, so switching them off assigned the
+   * boolean `true` and destroyed the nested shape.
+   */
+  const toggleMethod = (key: 'cash') => {
+    persist({ ...current, [key]: !current[key] });
   };
 
-  const togglePOS = (bank: 'gtb' | 'firstbank') => {
-    const updated = {
-      ...methods,
-      pos: { ...methods.pos, [bank]: !methods.pos[bank] },
-    };
-    setMethods(updated);
-    onUpdate?.(updated);
+  const toggleGroup = (group: 'transfer' | 'pos') => {
+    const groupConfig = current[group];
+    persist({
+      ...current,
+      [group]: {
+        ...current,
+        enabled: !groupConfig.enabled,
+        // Turning the group off must also drop the individual selections,
+        // otherwise re-enabling silently restores stale banks.
+        gtb: !groupConfig.enabled ? false : groupConfig.gtb,
+        firstbank: !groupConfig.enabled ? false : groupConfig.firstbank,
+      },
+    });
   };
 
-  const hasTransfer = methods.transfer.gtb || methods.transfer.firstbank;
-  const hasPOS = methods.pos.gtb || methods.pos.firstbank;
+  const toggleBank = (group: 'transfer' | 'pos', bank: 'gtb' | 'firstbank') => {
+    const groupConfig = current[group];
+    persist({ ...current, [group]: { ...groupConfig, [bank]: !groupConfig[bank] } });
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -77,12 +72,13 @@ export function PaymentMethodSettings({ onUpdate }: PaymentMethodSettingsProps) 
           </div>
           <button
             onClick={() => toggleMethod('cash')}
+            aria-pressed={current.cash}
             className={`w-12 h-7 rounded-full transition-all relative ${
-              methods.cash ? 'bg-emerald-500' : 'bg-[var(--surface-2)]'
+              current.cash ? 'bg-emerald-500' : 'bg-[var(--surface-2)]'
             }`}
           >
             <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${
-              methods.cash ? 'left-6' : 'left-1'
+              current.cash ? 'left-6' : 'left-1'
             }`} />
           </button>
         </div>
@@ -97,41 +93,42 @@ export function PaymentMethodSettings({ onUpdate }: PaymentMethodSettingsProps) 
             </div>
           </div>
           <button
-            onClick={() => toggleMethod('transfer')}
+            onClick={() => toggleGroup('transfer')}
+            aria-pressed={current.transfer.enabled}
             className={`w-12 h-7 rounded-full transition-all relative ${
-              hasTransfer ? 'bg-emerald-500' : 'bg-[var(--surface-2)]'
+              current.transfer.enabled ? 'bg-emerald-500' : 'bg-[var(--surface-2)]'
             }`}
           >
             <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${
-              hasTransfer ? 'left-6' : 'left-1'
+              current.transfer.enabled ? 'left-6' : 'left-1'
             }`} />
           </button>
         </div>
 
-        {hasTransfer && (
+        {current.transfer.enabled && (
           <div className="px-4 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]">
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => toggleBank('gtb')}
+                onClick={() => toggleBank('transfer', 'gtb')}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
-                  methods.transfer.gtb
+                  current.transfer.gtb
                     ? 'border-blue-500/50 bg-blue-500/10 text-blue-400'
                     : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                 }`}
               >
                 <span className="text-[12px] font-semibold">GTBank</span>
-                {methods.transfer.gtb && <IconCheck size={14} />}
+                {current.transfer.gtb && <IconCheck size={14} />}
               </button>
               <button
-                onClick={() => toggleBank('firstbank')}
+                onClick={() => toggleBank('transfer', 'firstbank')}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
-                  methods.transfer.firstbank
+                  current.transfer.firstbank
                     ? 'border-blue-500/50 bg-blue-500/10 text-blue-400'
                     : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                 }`}
               >
                 <span className="text-[12px] font-semibold">FirstBank</span>
-                {methods.transfer.firstbank && <IconCheck size={14} />}
+                {current.transfer.firstbank && <IconCheck size={14} />}
               </button>
             </div>
           </div>
@@ -147,41 +144,42 @@ export function PaymentMethodSettings({ onUpdate }: PaymentMethodSettingsProps) 
             </div>
           </div>
           <button
-            onClick={() => toggleMethod('pos')}
+            onClick={() => toggleGroup('pos')}
+            aria-pressed={current.pos.enabled}
             className={`w-12 h-7 rounded-full transition-all relative ${
-              hasPOS ? 'bg-emerald-500' : 'bg-[var(--surface-2)]'
+              current.pos.enabled ? 'bg-emerald-500' : 'bg-[var(--surface-2)]'
             }`}
           >
             <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${
-              hasPOS ? 'left-6' : 'left-1'
+              current.pos.enabled ? 'left-6' : 'left-1'
             }`} />
           </button>
         </div>
 
-        {hasPOS && (
+        {current.pos.enabled && (
           <div className="px-4 py-3 bg-[var(--surface-2)] border-t border-[var(--border)]">
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => togglePOS('gtb')}
+                onClick={() => toggleBank('pos', 'gtb')}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
-                  methods.pos.gtb
+                  current.pos.gtb
                     ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
                     : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                 }`}
               >
                 <span className="text-[12px] font-semibold">GTBank POS</span>
-                {methods.pos.gtb && <IconCheck size={14} />}
+                {current.pos.gtb && <IconCheck size={14} />}
               </button>
               <button
-                onClick={() => togglePOS('firstbank')}
+                onClick={() => toggleBank('pos', 'firstbank')}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
-                  methods.pos.firstbank
+                  current.pos.firstbank
                     ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
                     : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                 }`}
               >
                 <span className="text-[12px] font-semibold">FirstBank POS</span>
-                {methods.pos.firstbank && <IconCheck size={14} />}
+                {current.pos.firstbank && <IconCheck size={14} />}
               </button>
             </div>
           </div>
@@ -194,7 +192,7 @@ export function PaymentMethodSettings({ onUpdate }: PaymentMethodSettingsProps) 
           <div>
             <div className="text-[12px] font-semibold text-amber-400">Tip</div>
             <div className="text-[11px] text-muted mt-0.5">
-              Disabling a payment method will hide it from the POS terminal. You can enable/disable methods based on your store&apos;s capabilities.
+              Disabling a payment method hides it from the POS terminal. Changes are saved to the store record immediately.
             </div>
           </div>
         </div>

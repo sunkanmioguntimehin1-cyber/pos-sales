@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { applyIdVirtual } from './plugins/applyIdVirtual.js';
 
 const orderItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -33,5 +34,7 @@ orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ staffId: 1 });
 orderSchema.index({ customerId: 1 });
+
+applyIdVirtual(orderSchema);
 
 export const Order = mongoose.model('Order', orderSchema);

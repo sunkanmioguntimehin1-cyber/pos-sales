@@ -1,4 +1,6 @@
 'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/layout/Shell';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { POSTerminalScreen } from '@/components/pos/POSTerminalScreen';
@@ -10,12 +12,26 @@ import { CustomersScreen as BaseCustomersScreen } from '@/components/customers/C
 import { BranchesScreen } from '@/components/branches/BranchesScreen';
 import { StaffScreen } from '@/components/staff/StaffScreen';
 import { ReportsScreen, SettingsScreen } from '@/components/screens/OtherScreens';
+import { useAuthStore } from '@/store/authStore';
 
 function CustomersScreen() {
   return <BaseCustomersScreen />;
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  // The auth store is persisted, so a refresh keeps `token`; only a genuinely
+  // token-less visitor should be bounced to the login screen.
+  const token = useAuthStore((s) => s.token);
+
+  useEffect(() => {
+    if (!token) {
+      router.replace('/');
+    }
+  }, [token, router]);
+
+  if (!token) return null;
+
   return (
     <Shell defaultTab="dashboard">
       {(active) => {

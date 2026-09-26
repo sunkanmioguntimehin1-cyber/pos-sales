@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { IconSearch, IconPlus, IconEdit, IconHistory, IconPrinter, IconSliders } from '@/components/ui/Icons';
 import { InventoryItem, StockLog } from './types';
 
@@ -29,13 +29,18 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
 
-  const categories = ['Electronics', 'Cases', 'Accessories', 'Cables'];
+  // Real categories off the loaded products. The old list was hardcoded
+  // ('Electronics', 'Cases', …) and matched against the product *name*, so
+  // picking one silently hid rows that had nothing to do with it.
+  const categories = useMemo(
+    () => Array.from(new Set(inventory.map(i => i.category))).sort(),
+    [inventory],
+  );
 
   const filtered = inventory.filter(item =>
-    (catFilter === 'All' || item.name.toLowerCase().includes(catFilter.toLowerCase())) &&
-    (item.name.toLowerCase().includes(search.toLowerCase()) || 
-     item.productCode.toLowerCase().includes(search.toLowerCase()) ||
-     item.color.toLowerCase().includes(search.toLowerCase()))
+    (catFilter === 'All' || item.category === catFilter) &&
+    (item.name.toLowerCase().includes(search.toLowerCase()) ||
+     item.productCode.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -60,7 +65,7 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
           </span>
           <input 
             className="w-full h-9 pl-8 pr-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all" 
-            placeholder={tab === 'stock' ? "Search by name, code, or color…" : "Search logs…"} 
+            placeholder={tab === 'stock' ? "Search by name or code…" : "Search logs…"} 
             value={search} 
             onChange={e => setSearch(e.target.value)} 
           />
@@ -126,7 +131,7 @@ function StockTable({ items, onViewHistory, onPrint }: { items: InventoryItem[];
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            {['Product', 'Code', 'Color', 'Size', 'On Hand', 'Reserved', 'Available', 'Reorder Pt.', 'Location', 'Status', 'Actions'].map(h => (
+            {['Product', 'Code', 'On Hand', 'Reserved', 'Available', 'Reorder Pt.', 'Status', 'Actions'].map(h => (
               <th key={h} className="px-3.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                 {h}
               </th>
@@ -143,15 +148,10 @@ function StockTable({ items, onViewHistory, onPrint }: { items: InventoryItem[];
               <td className="px-3.5 py-3 border-b border-[var(--border)]">
                 <span className="font-mono text-[11px] text-subtle">{item.productCode}</span>
               </td>
-              <td className="px-3.5 py-3 border-b border-[var(--border)] text-xs text-muted">{item.color}</td>
-              <td className="px-3.5 py-3 border-b border-[var(--border)] text-xs text-muted">{item.size}</td>
               <td className={`px-3.5 py-3 border-b border-[var(--border)] font-extrabold tabular-nums ${stockColorCls(item.status)}`}>{item.onHand}</td>
               <td className="px-3.5 py-3 border-b border-[var(--border)] text-subtle tabular-nums text-xs">{item.reserved}</td>
               <td className={`px-3.5 py-3 border-b border-[var(--border)] font-extrabold tabular-nums ${stockColorCls(item.status)}`}>{item.available}</td>
               <td className="px-3.5 py-3 border-b border-[var(--border)] text-subtle tabular-nums text-xs">{item.reorder}</td>
-              <td className="px-3.5 py-3 border-b border-[var(--border)]">
-                <span className="font-mono text-[10px] bg-[var(--surface-2)] px-1.5 py-0.5 rounded border border-[var(--border)]">{item.location}</span>
-              </td>
               <td className="px-3.5 py-3 border-b border-[var(--border)]">{stockBadge(item.status)}</td>
               <td className="px-3.5 py-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-1">

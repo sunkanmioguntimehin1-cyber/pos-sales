@@ -59,8 +59,8 @@ npm run dev
 
 ## Backend
 
-- **Port**: `http://localhost:5000`
-- **Stack**: Express.js, MongoDB/Mongoose, JWT
+- **Port**: `http://localhost:5001` (`5000` is held by macOS AirPlay Receiver)
+- **Stack**: Express.js (ESM), MongoDB/Mongoose, JWT
 
 ## API Docs
 
@@ -71,6 +71,6 @@ See `backend/README.md` for full API documentation.
 | Layer | Technology |
 |-------|------------|
 | Frontend | Next.js, React, Zustand |
-| Backend | Express.js, TypeScript |
-| Database | MongoDB Atlas |
+| Backend | Express.js (JavaScript, ESM) |
+| Database | MongoDB (in-memory fallback for local dev) |
 | Auth | JWT |

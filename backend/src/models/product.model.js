@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { applyIdVirtual } from './plugins/applyIdVirtual.js';
 
 const productSchema = new Schema(
   {
@@ -22,5 +23,7 @@ productSchema.index({ barcode: 1 }, { sparse: true });
 productSchema.index({ categoryId: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ name: 'text', description: 'text' });
+
+applyIdVirtual(productSchema);
 
 export const Product = mongoose.model('Product', productSchema);

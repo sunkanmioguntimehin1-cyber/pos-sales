@@ -18,23 +18,21 @@ export function BranchesScreen() {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [viewPanelBranch, setViewPanelBranch] = useState<Branch | null>(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const { data: branches = [], isLoading } = useBranches();
   const createBranch = useCreateBranch();
   const updateBranch = useUpdateBranch();
   const deleteBranch = useDeleteBranch();
 
-  const activeCount = branches.filter(b => b.isDefault || !statusFilter).length;
-  const inactiveCount = branches.filter(b => !b.isDefault).length;
+  const activeCount = branches.filter(b => b.status === 'active').length;
+  const inactiveCount = branches.filter(b => b.status === 'inactive').length;
 
   const filteredBranches = branches.filter(branch => {
     const matchesSearch = 
       branch.name.toLowerCase().includes(search.toLowerCase()) ||
       (branch.address?.toLowerCase().includes(search.toLowerCase()) ?? false);
-    const matchesStatus = statusFilter === 'All' || 
-      (statusFilter === 'active' && branch.isDefault) ||
-      (statusFilter === 'inactive' && !branch.isDefault);
+    const matchesStatus = statusFilter === 'all' || branch.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -43,6 +41,7 @@ export function BranchesScreen() {
       name: data.name,
       address: data.address,
       phone: data.phone,
+      status: data.status,
     });
   };
 
@@ -53,7 +52,7 @@ export function BranchesScreen() {
         name: data.name,
         address: data.address,
         phone: data.phone,
-        isDefault: data.status === 'active',
+        status: data.status,
       },
     });
   };
@@ -93,7 +92,7 @@ export function BranchesScreen() {
             />
           </div>
           <select className={selectCls} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="All">All Status</option>
+            <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
@@ -135,12 +134,19 @@ export function BranchesScreen() {
                     <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted max-w-[200px] truncate">{branch.address || '-'}</td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted">{branch.phone || '-'}</td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        branch.isDefault 
-                          ? 'bg-emerald-500/15 text-emerald-400' 
-                          : 'bg-[var(--input-bg)] text-muted'
-                      }`}>
-                        {branch.isDefault ? 'Default' : 'Inactive'}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          branch.status === 'active'
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : 'bg-[var(--input-bg)] text-muted'
+                        }`}>
+                          {branch.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                        {branch.isDefault && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400">
+                            Default
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">

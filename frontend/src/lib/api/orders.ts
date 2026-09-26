@@ -8,8 +8,24 @@ export interface OrderItem {
   totalPrice: number;
 }
 
+/** Shape the backend returns after `.populate('customerId', 'name email')`. */
+export interface PopulatedCustomerRef {
+  _id: string;
+  id: string;
+  name: string;
+  email?: string;
+}
+
+/** Shape the backend returns after `.populate('staffId'|'branchId', 'name')`. */
+export interface PopulatedNameRef {
+  _id: string;
+  id: string;
+  name: string;
+}
+
 export interface Order {
   id: string;
+  _id?: string;
   orderNumber: string;
   items: OrderItem[];
   subtotal: number;
@@ -17,25 +33,45 @@ export interface Order {
   total: number;
   paymentMethod?: string;
   status: 'pending' | 'completed' | 'cancelled' | 'refunded';
-  customerId?: string;
-  customer?: { _id: string; name: string };
-  staffId: string;
-  staff?: { _id: string; name: string };
-  branchId?: string;
-  branch?: { _id: string; name: string };
+  /**
+   * Populated into these three fields by the backend, so they arrive as objects
+   * (with just `name` selected) rather than ids.
+   */
+  customerId?: string | PopulatedCustomerRef | null;
+  staffId: string | PopulatedNameRef;
+  branchId?: string | PopulatedNameRef | null;
   notes?: string;
   createdAt: string;
 }
 
 export interface CreateOrderData {
-  items: Omit<OrderItem, 'totalPrice'>[];
+  items: OrderItem[];
   subtotal: number;
   tax: number;
   total: number;
   paymentMethod?: string;
+  /** Attributes the sale to this staff member instead of the logged-in user. */
+  staffId?: string;
   customerId?: string;
   branchId?: string;
   notes?: string;
+}
+
+function nameOf(value: string | { name: string } | null | undefined): string | undefined {
+  if (!value) return undefined;
+  return typeof value === 'string' ? undefined : value.name;
+}
+
+export function getOrderCustomerName(order: Pick<Order, 'customerId'>): string | undefined {
+  return nameOf(order.customerId);
+}
+
+export function getOrderStaffName(order: Pick<Order, 'staffId'>): string | undefined {
+  return nameOf(order.staffId);
+}
+
+export function getOrderBranchName(order: Pick<Order, 'branchId'>): string | undefined {
+  return nameOf(order.branchId);
 }
 
 export const ordersApi = {

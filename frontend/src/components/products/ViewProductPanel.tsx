@@ -1,6 +1,6 @@
 'use client';
 import { SidePanel } from '@/components/ui/SidePanel';
-import { Product } from '@/lib/api/products';
+import { Product, getProductCategoryName } from '@/lib/api/products';
 
 interface ViewProductPanelProps {
   isOpen: boolean;
@@ -87,7 +87,7 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
 
           <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
             <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Category</div>
-            <div className="text-[13px] text-[var(--text)] font-medium">{product.category?.name || '-'}</div>
+            <div className="text-[13px] text-[var(--text)] font-medium">{getProductCategoryName(product) || '-'}</div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

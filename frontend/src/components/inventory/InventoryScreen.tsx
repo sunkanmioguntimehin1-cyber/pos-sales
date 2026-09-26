@@ -1,21 +1,21 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { InventoryItem, StockLog, StockAdjustmentFormData } from './types';
+import { InventoryItem, StockAdjustmentFormData } from './types';
 import { InventoryTable } from './InventoryTable';
 import { StockAdjustmentForm } from './StockAdjustmentForm';
 import { AddInventoryModal } from './AddInventoryModal';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { StockHistoryPanel } from './StockHistoryPanel';
-import { useProducts, useAdjustStock } from '@/lib/hooks';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { useProducts, useAdjustStock, useCreateProduct, getProductCategoryName } from '@/lib/hooks';
 
 export function InventoryScreen() {
   const { data: products = [], isLoading } = useProducts();
   const adjustStock = useAdjustStock();
+  const createProduct = useCreateProduct();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAdjustPanelOpen, setIsAdjustPanelOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
 
   const inventory: InventoryItem[] = useMemo(() => {
     return products.map(p => {
@@ -30,13 +30,11 @@ export function InventoryScreen() {
         id: p.id,
         productCode: p.sku || p.barcode || p.id,
         name: p.name,
-        color: '',
-        size: '',
+        category: getProductCategoryName(p) ?? 'Uncategorized',
         onHand,
         reserved: 0,
         available: onHand,
         reorder,
-        location: '',
         updated: new Date(p.createdAt).toLocaleDateString(),
         status,
       };
@@ -47,29 +45,72 @@ export function InventoryScreen() {
   const lowStockCount = inventory.filter(item => item.status === 'low' || item.status === 'critical').length;
   const outOfStockCount = inventory.filter(item => item.status === 'out').length;
 
+  /**
+   * The form carries its own product dropdown keyed by product code, so the
+   * target has to be resolved from the submitted data — not from whichever row
+   * last opened the panel.
+   */
   const handleStockAdjustment = (data: StockAdjustmentFormData) => {
-    if (!selectedProduct) return;
+    const target = inventory.find(item => item.productCode === data.productCode);
+    if (!target) return;
+
     const qty = parseInt(data.quantity, 10);
-    if (isNaN(qty)) return;
-    
-    adjustStock.mutate({
-      productId: selectedProduct.id,
-      adjustment: data.type === 'set' ? qty - selectedProduct.onHand : qty,
-      type: data.type as 'set' | 'adjust',
-    });
-    setIsAdjustPanelOpen(false);
+    if (Number.isNaN(qty)) return;
+
+    // The backend only distinguishes "set to an absolute value" from
+    // "add a (possibly negative) delta", so removals must arrive negative.
+    let adjustment: number;
+    let type: 'set' | 'adjust';
+
+    switch (data.type) {
+      case 'correction':
+        adjustment = qty;
+        type = 'set';
+        break;
+      case 'damage':
+      case 'transfer':
+        adjustment = -qty;
+        type = 'adjust';
+        break;
+      default:
+        adjustment = qty;
+        type = 'adjust';
+    }
+
+    adjustStock.mutate(
+      { productId: target.id, adjustment, type },
+      { onSettled: () => setIsAdjustPanelOpen(false) }
+    );
   };
 
-  const handleAddInventory = () => {
-    setIsAddModalOpen(false);
+  /** "Add Inventory" creates a real product; fields with no schema column are not collected. */
+  const handleAddInventory = (item: {
+    productCode: string;
+    name: string;
+    price: number;
+    costPrice?: number;
+    onHand: number;
+    reorder: number;
+  }) => {
+    createProduct.mutate(
+      {
+        name: item.name,
+        sku: item.productCode,
+        price: item.price,
+        costPrice: item.costPrice,
+        stock: item.onHand,
+        lowStockThreshold: item.reorder,
+      },
+      { onSettled: () => setIsAddModalOpen(false) }
+    );
   };
 
   const handleViewHistory = (item: InventoryItem) => {
-    setSelectedProduct(item);
+    setHistoryItem(item);
   };
 
   const handlePrint = (item: InventoryItem) => {
-    console.log('Print label for:', item.productCode);
+    window.print();
   };
 
   return (
@@ -87,6 +128,10 @@ export function InventoryScreen() {
           </div>
         ))}
       </div>
+
+      {isLoading && (
+        <div className="text-[13px] text-subtle">Loading inventory…</div>
+      )}
 
       <InventoryTable
         inventory={inventory}
@@ -132,12 +177,12 @@ export function InventoryScreen() {
       </SidePanel>
 
       <SidePanel
-        isOpen={!!selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-        title={`Stock History — ${selectedProduct?.name || ''}`}
+        isOpen={!!historyItem}
+        onClose={() => setHistoryItem(null)}
+        title={`Stock History — ${historyItem?.name || ''}`}
         width="480px"
       >
-        {selectedProduct && <StockHistoryPanel product={selectedProduct} logs={[]} />}
+        {historyItem && <StockHistoryPanel product={historyItem} logs={[]} />}
       </SidePanel>
     </div>
   );
