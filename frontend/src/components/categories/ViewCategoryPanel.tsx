@@ -30,7 +30,7 @@ export function ViewCategoryPanel({ isOpen, onClose, category, onEdit, onDelete 
 
   const statusBadge = (isActive: boolean) => {
     if (isActive) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400">Active</span>;
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-400">Inactive</span>;
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--input-bg)] text-muted">Inactive</span>;
   };
 
   const handleClose = () => {
@@ -61,38 +61,38 @@ export function ViewCategoryPanel({ isOpen, onClose, category, onEdit, onDelete 
     >
       {category && (
         <div className="space-y-5">
-          <div className="w-full h-40 bg-[#1E2535] border border-white/[0.07] rounded-xl flex items-center justify-center" style={{ backgroundColor: category.color || '#1E2535' }}>
+          <div className="w-full h-40 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl flex items-center justify-center" style={{ backgroundColor: category.color || '#1E2535' }}>
             <span className="text-7xl">{category.name.charAt(0).toUpperCase()}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <h3 className="text-[18px] font-bold text-slate-100">{category.name}</h3>
+            <h3 className="text-[18px] font-bold text-[var(--text)]">{category.name}</h3>
             {statusBadge(category.isActive)}
           </div>
 
           {category.description && (
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-4">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2">Description</div>
-              <p className="text-[13px] text-slate-300 leading-relaxed">{category.description}</p>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-2">Description</div>
+              <p className="text-[13px] text-muted leading-relaxed">{category.description}</p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-4">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Products</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Products</div>
               <div className="text-[24px] font-extrabold text-blue-400">{category.productCount}</div>
             </div>
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-4">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Status</div>
-              <div className={`text-[16px] font-bold ${category.isActive ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Status</div>
+              <div className={`text-[16px] font-bold ${category.isActive ? 'text-emerald-400' : 'text-muted'}`}>
                 {category.isActive ? 'Active' : 'Inactive'}
               </div>
             </div>
           </div>
 
-          <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-4">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Created</div>
-            <div className="text-[13px] text-slate-300">{formatDate(category.createdAt)}</div>
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+            <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Created</div>
+            <div className="text-[13px] text-muted">{formatDate(category.createdAt)}</div>
           </div>
         </div>
       )}

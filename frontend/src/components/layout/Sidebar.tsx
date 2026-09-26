@@ -1,120 +1,242 @@
 'use client';
 import { useStore } from '@/lib/hooks';
+import { useLogout } from '@/lib/hooks/useAuth';
+import { useAuthStore } from '@/store/authStore';
 import {
   IconDashboard, IconOrders, IconProducts, IconCategories, IconInventory,
   IconCustomers, IconReports, IconSettings, IconPOS, IconStore, IconUser,
+  IconChevronRight, IconX,
 } from '@/components/ui/Icons';
 
-const nav = [
+type NavItem =
+  | { section: string }
+  | { id: string; label: string; Icon: React.ComponentType<{ size?: number; className?: string }>; live?: boolean };
+
+const nav: NavItem[] = [
+  { section: 'Overview' },
   { id: 'dashboard',  label: 'Dashboard',    Icon: IconDashboard },
-  { id: 'pos',        label: 'POS Terminal',  Icon: IconPOS,        live: true },
-  { id: 'orders',     label: 'Orders',        Icon: IconOrders },
-  { id: 'products',   label: 'Products',      Icon: IconProducts },
-  { id: 'categories', label: 'Categories',    Icon: IconCategories },
+  { id: 'pos',        label: 'POS Terminal', Icon: IconPOS, live: true },
+  { id: 'orders',     label: 'Orders',       Icon: IconOrders },
+  { id: 'products',   label: 'Products',     Icon: IconProducts },
+  { id: 'categories', label: 'Categories',   Icon: IconCategories },
   { section: 'Operations' },
-  { id: 'inventory', label: 'Inventory',     Icon: IconInventory },
-  { id: 'customers', label: 'Customers',      Icon: IconCustomers },
-  { id: 'reports',   label: 'Reports',        Icon: IconReports },
-  { section: 'Config' },
-  { id: 'branches',  label: 'Branches',      Icon: IconStore },
-  { id: 'staff',     label: 'Staff',          Icon: IconUser },
-  { id: 'settings',  label: 'Settings',      Icon: IconSettings },
-] as const;
+  { id: 'inventory',  label: 'Inventory',    Icon: IconInventory },
+  { id: 'customers',  label: 'Customers',    Icon: IconCustomers },
+  { id: 'reports',    label: 'Reports',      Icon: IconReports },
+  { section: 'Configuration' },
+  { id: 'branches',   label: 'Branches',     Icon: IconStore },
+  { id: 'staff',      label: 'Staff',        Icon: IconUser },
+  { id: 'settings',   label: 'Settings',     Icon: IconSettings },
+];
 
-interface SidebarProps { active?: string; onChange?: (id: string) => void; }
+function initials(name?: string) {
+  if (!name) return 'U';
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
+}
 
-export function Sidebar({ active = 'dashboard', onChange }: SidebarProps) {
+interface SidebarProps {
+  active?: string;
+  onChange?: (id: string) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export function Sidebar({
+  active = 'dashboard',
+  onChange,
+  collapsed = false,
+  onToggleCollapse,
+  mobileOpen = false,
+  onCloseMobile,
+}: SidebarProps) {
   const { data: store } = useStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useLogout();
 
-  const brandName = store?.name || 'My Store';
-  const primaryColor = store?.settings.primaryColor || 'var(--color-primary)';
+  const brandName = store?.name || 'RetailCore';
+  const width = collapsed ? 76 : 260;
 
   return (
-    <aside className="w-60 h-screen flex flex-col fixed left-0 top-0 z-50 border-r" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+    <>
+      {/* Mobile scrim */}
+      <div
+        onClick={onCloseMobile}
+        className={`fixed inset-0 z-40 lg:hidden transition-opacity duration-200 ${
+          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        style={{ backgroundColor: 'var(--overlay)', backdropFilter: 'blur(2px)' }}
+      />
 
-      {/* Logo */}
-      <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-2.5">
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r transition-[width,transform] duration-250 ease-out lg:translate-x-0 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{
+          width,
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+        }}
+      >
+        {/* Brand */}
+        <div
+          className="flex h-16 flex-shrink-0 items-center gap-2.5 border-b px-4"
+          style={{ borderColor: 'var(--border)' }}
+        >
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(59,130,246,0.4)]"
-            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+            style={{
+              background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+              boxShadow: '0 6px 18px -8px var(--primary)',
+            }}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4M6 9h.01M9 9h6"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.1" strokeLinecap="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4M6 9h.01M9 9h6" />
             </svg>
           </div>
-          <div>
-            <div className="font-extrabold text-sm tracking-tight" style={{ color: 'var(--color-text)' }}>{brandName}</div>
-            <div className="text-[9px] font-semibold tracking-wider" style={{ color: 'var(--color-text-subtle)' }}>POS v2.0</div>
-          </div>
-        </div>
-      </div>
 
-      {/* Store pill */}
-      <div className="mx-2 mt-2.5 mb-1 rounded-lg px-2.5 py-2 flex items-center gap-2 border" style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-        <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}>
-          <IconStore size={13} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-bold truncate" style={{ color: 'var(--color-text)' }}>{brandName}</div>
-          <div className="text-[9px]" style={{ color: 'var(--color-text-subtle)' }}>{store?.description || 'Main Store'}</div>
-        </div>
-        <div className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse-glow" style={{ backgroundColor: 'var(--color-success)' }} />
-      </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[15px] font-bold tracking-tight">{brandName}</div>
+              <div className="eyebrow">Point of Sale</div>
+            </div>
+          )}
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-1">
-        {nav.map((item, i) => {
-          if ('section' in item) {
-            return (
-              <div key={i} className="text-[9px] font-extrabold tracking-widest uppercase px-5 pt-2.5 pb-1" style={{ color: 'var(--color-text-subtle)' }}>
-                {item.section}
-              </div>
-            );
-          }
-          const { id, label, Icon } = item as { id: string; label: string; Icon: React.ComponentType<{ size?: number; className?: string }>; live?: boolean };
-          const isActive = active === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onChange?.(id)}
-              className={`w-[calc(100%-14px)] mx-[7px] flex items-center gap-2.5 px-3.5 py-2 my-[1px] rounded-lg text-xs font-semibold transition-all duration-150 border text-left ${
-                isActive
-                  ? 'border-blue-500/20'
-                  : 'border-transparent hover:border-transparent'
-              }`}
-              style={{
-                color: isActive ? primaryColor : 'var(--color-text-muted)',
-                backgroundColor: isActive ? `${primaryColor}15` : 'transparent',
-              }}
-            >
-              <Icon size={14} />
-              <span>{label}</span>
-              {(item as { live?: boolean }).live && (
-                <span
-                  className="ml-auto text-white text-[8px] font-extrabold px-1.5 py-px rounded tracking-wider"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  LIVE
-                </span>
-              )}
+          {!collapsed && (
+            <button onClick={onCloseMobile} className="icon-btn icon-btn-sm lg:hidden" aria-label="Close navigation">
+              <IconX size={14} />
             </button>
-          );
-        })}
-      </nav>
+          )}
+        </div>
 
-      {/* User */}
-      <div className="px-4 py-3 border-t flex items-center gap-2.5" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-extrabold text-white flex-shrink-0" style={{ background: `linear-gradient(135deg, ${primaryColor}, #8B5CF6)` }}>
-          AM
+        {/* Store pill */}
+        {!collapsed && (
+          <div
+            className="mx-3 mt-3 flex items-center gap-2.5 rounded-xl border px-3 py-2.5"
+            style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--border)' }}
+          >
+            <div
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
+            >
+              <IconStore size={15} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[12.5px] font-semibold">{store?.name || 'Main Store'}</div>
+              <div className="truncate text-[11px] text-subtle">{store?.description || 'All systems operational'}</div>
+            </div>
+            <span
+              className="h-2 w-2 flex-shrink-0 rounded-full animate-pulse-glow"
+              style={{ backgroundColor: 'var(--success)' }}
+            />
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="scroll-area flex-1 overflow-y-auto px-3 py-3">
+          {nav.map((item, i) => {
+            if ('section' in item) {
+              if (collapsed) {
+                return <div key={i} className="mx-auto my-3 h-px w-8" style={{ backgroundColor: 'var(--border)' }} />;
+              }
+              return (
+                <div key={i} className="eyebrow px-3 pb-1.5 pt-4 first:pt-1">
+                  {item.section}
+                </div>
+              );
+            }
+
+            const { id, label, Icon, live } = item;
+            const isActive = active === id;
+
+            return (
+              <button
+                key={id}
+                onClick={() => { onChange?.(id); onCloseMobile?.(); }}
+                title={collapsed ? label : undefined}
+                className={`group relative mb-0.5 flex w-full items-center gap-3 rounded-xl py-2.5 text-[13px] font-medium transition-all duration-150 ${
+                  collapsed ? 'justify-center px-0' : 'px-3'
+                }`}
+                style={{
+                  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                  backgroundColor: isActive ? 'var(--primary-soft)' : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = 'var(--input-bg)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                {isActive && (
+                  <span
+                    className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full"
+                    style={{ backgroundColor: 'var(--primary)' }}
+                  />
+                )}
+                <Icon size={17} />
+                {!collapsed && <span className="truncate">{label}</span>}
+                {!collapsed && live && (
+                  <span
+                    className="ml-auto rounded-md px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white"
+                    style={{ backgroundColor: 'var(--success)' }}
+                  >
+                    LIVE
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Collapse toggle */}
+        <button
+          onClick={onToggleCollapse}
+          className="mx-3 mb-2 hidden h-9 items-center justify-center gap-2 rounded-xl border text-[12px] font-semibold transition-all lg:flex"
+          style={{ borderColor: 'var(--border)', color: 'var(--text-subtle)' }}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <span className={`transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}>
+            <IconChevronRight size={14} />
+          </span>
+          {!collapsed && <span>Collapse</span>}
+        </button>
+
+        {/* User */}
+        <div
+          className={`flex flex-shrink-0 items-center gap-2.5 border-t px-3 py-3 ${collapsed ? 'justify-center' : ''}`}
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))' }}
+          >
+            {initials(user?.name)}
+          </div>
+          {!collapsed && (
+            <>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12.5px] font-semibold">{user?.name || 'Guest user'}</div>
+                <div className="truncate text-[11px] capitalize text-subtle">{user?.role?.replace('_', ' ') || 'Not signed in'}</div>
+              </div>
+              <button
+                onClick={() => logout.mutate()}
+                className="icon-btn icon-btn-sm"
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-bold truncate" style={{ color: 'var(--color-text)' }}>Admin Manager</div>
-          <div className="text-[9px]" style={{ color: 'var(--color-text-subtle)' }}>Store Admin</div>
-        </div>
-        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--color-success)', boxShadow: '0 0 6px var(--color-success)' }} />
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

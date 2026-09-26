@@ -38,25 +38,32 @@ export function Modal({ isOpen, onClose, title, children, footer, width = 'md' }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+      <div
+        className="animate-fade-in absolute inset-0 backdrop-blur-sm"
+        style={{ backgroundColor: 'var(--overlay)' }}
         onClick={onClose}
       />
-      <div className={`relative w-full ${widthClasses[width]} bg-[#161B27] border border-white/[0.07] rounded-xl shadow-2xl animate-scale-in`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-          <h2 className="text-[15px] font-bold text-slate-100">{title}</h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-all"
-          >
+      <div
+        className={`animate-scale-in relative w-full ${widthClasses[width]} overflow-hidden rounded-2xl border shadow-2xl`}
+        style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-5 py-4"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
+          <button onClick={onClose} className="icon-btn icon-btn-sm" aria-label="Close">
             <IconX size={16} />
           </button>
         </div>
-        <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-5 py-4">
+        <div className="scroll-area max-h-[calc(100vh-200px)] overflow-y-auto px-5 py-4">
           {children}
         </div>
         {footer && (
-          <div className="px-5 py-4 border-t border-white/[0.07] flex items-center justify-end gap-2">
+          <div
+            className="flex items-center justify-end gap-2 border-t px-5 py-4"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
+          >
             {footer}
           </div>
         )}

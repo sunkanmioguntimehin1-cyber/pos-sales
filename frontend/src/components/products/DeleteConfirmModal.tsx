@@ -30,7 +30,7 @@ export function DeleteConfirmModal({ isOpen, onClose, product, onConfirm }: Dele
         <>
           <button 
             onClick={handleClose} 
-            className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+            className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
           >
             Cancel
           </button>
@@ -47,9 +47,9 @@ export function DeleteConfirmModal({ isOpen, onClose, product, onConfirm }: Dele
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
           <IconTrash size={24} className="text-red-400" />
         </div>
-        <p className="text-slate-100 text-[15px] font-semibold mb-2">Are you sure?</p>
-        <p className="text-slate-400 text-[13px]">
-          This will permanently delete <span className="text-slate-200 font-medium">{product?.name}</span>. This action cannot be undone.
+        <p className="text-[var(--text)] text-[15px] font-semibold mb-2">Are you sure?</p>
+        <p className="text-muted text-[13px]">
+          This will permanently delete <span className="text-[var(--text)] font-medium">{product?.name}</span>. This action cannot be undone.
         </p>
       </div>
     </Modal>

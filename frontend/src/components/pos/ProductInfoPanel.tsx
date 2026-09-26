@@ -39,7 +39,7 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
         <>
           <button
             onClick={onClose}
-            className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+            className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
           >
             Close
           </button>
@@ -53,28 +53,28 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
       }
     >
       <div className="flex flex-col gap-5">
-        <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-5">
+        <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-5">
           <div className="flex items-start gap-4">
             <div className="text-[40px]">📦</div>
             <div className="flex-1">
-              <h3 className="text-[15px] font-bold text-slate-100 mb-1">{product.name}</h3>
-              <div className="font-mono text-[11px] text-slate-500 mb-2">{product.sku}</div>
+              <h3 className="text-[15px] font-bold text-[var(--text)] mb-1">{product.name}</h3>
+              <div className="font-mono text-[11px] text-subtle mb-2">{product.sku}</div>
               <div className="text-xl font-extrabold text-blue-400">${product.price.toFixed(2)}</div>
             </div>
           </div>
         </div>
 
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Attributes</div>
-          <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-4">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-3">Attributes</div>
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                   <IconPackage size={14} />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Category</div>
-                  <div className="text-[12px] text-slate-100 font-semibold">{product.category?.name || '-'}</div>
+                  <div className="text-[10px] text-subtle uppercase">Category</div>
+                  <div className="text-[12px] text-[var(--text)] font-semibold">{product.category?.name || '-'}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -84,8 +84,8 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Stock</div>
-                  <div className="text-[12px] text-slate-100 font-semibold">{product.stock}</div>
+                  <div className="text-[10px] text-subtle uppercase">Stock</div>
+                  <div className="text-[12px] text-[var(--text)] font-semibold">{product.stock}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -95,8 +95,8 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Barcode</div>
-                  <div className="text-[12px] text-slate-100 font-semibold">{product.barcode || '-'}</div>
+                  <div className="text-[10px] text-subtle uppercase">Barcode</div>
+                  <div className="text-[12px] text-[var(--text)] font-semibold">{product.barcode || '-'}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -104,8 +104,8 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
                   <IconPackage size={14} />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-500 uppercase">Total Stock</div>
-                  <div className="text-[12px] text-slate-100 font-semibold">{totalStock} units</div>
+                  <div className="text-[10px] text-subtle uppercase">Total Stock</div>
+                  <div className="text-[12px] text-[var(--text)] font-semibold">{totalStock} units</div>
                 </div>
               </div>
             </div>
@@ -113,28 +113,28 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
         </div>
 
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-3 flex items-center gap-2">
             <IconStore size={12} />
             Branch Inventory
           </div>
-          <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl overflow-hidden">
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.07]">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Branch</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Location</th>
-                  <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500">Qty</th>
-                  <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle">Branch</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle">Location</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-subtle">Qty</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-subtle">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {branchInventory.map((branch) => {
                   const status = stockStatus(branch.quantity);
                   return (
-                    <tr key={branch.branchId} className="border-b border-white/[0.07] last:border-0 hover:bg-white/[0.02]">
-                      <td className="px-4 py-3 text-[12px] text-slate-100 font-semibold">{branch.branchName}</td>
-                      <td className="px-4 py-3 text-[11px] text-slate-500 font-mono">{branch.location}</td>
-                      <td className="px-4 py-3 text-[12px] text-slate-100 font-extrabold text-right tabular-nums">{branch.quantity}</td>
+                    <tr key={branch.branchId} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--input-bg)]">
+                      <td className="px-4 py-3 text-[12px] text-[var(--text)] font-semibold">{branch.branchName}</td>
+                      <td className="px-4 py-3 text-[11px] text-subtle font-mono">{branch.location}</td>
+                      <td className="px-4 py-3 text-[12px] text-[var(--text)] font-extrabold text-right tabular-nums">{branch.quantity}</td>
                       <td className="px-4 py-3 text-right">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${status.color}`}>
                           {status.label}

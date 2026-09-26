@@ -31,28 +31,32 @@ export function SidePanel({ isOpen, onClose, title, children, footer, width = '4
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+      <div
+        className="animate-fade-in absolute inset-0 backdrop-blur-sm"
+        style={{ backgroundColor: 'var(--overlay)' }}
         onClick={onClose}
       />
-      <div 
-        className="relative h-full w-full bg-[#161B27] border-l border-white/[0.07] shadow-2xl animate-slide-in-right overflow-hidden flex flex-col"
-        style={{ maxWidth: width }}
+      <div
+        className="animate-slide-in-right relative flex h-full w-full flex-col overflow-hidden border-l shadow-2xl"
+        style={{ maxWidth: width, backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
-          <h2 className="text-[15px] font-bold text-slate-100">{title}</h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-all"
-          >
+        <div
+          className="flex flex-shrink-0 items-center justify-between border-b px-5 py-4"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
+          <button onClick={onClose} className="icon-btn icon-btn-sm" aria-label="Close">
             <IconX size={16} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="scroll-area flex-1 overflow-y-auto px-5 py-4">
           {children}
         </div>
         {footer && (
-          <div className="px-5 py-4 border-t border-white/[0.07] flex items-center justify-end gap-2 flex-shrink-0">
+          <div
+            className="flex flex-shrink-0 items-center justify-end gap-2 border-t px-5 py-4"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
+          >
             {footer}
           </div>
         )}

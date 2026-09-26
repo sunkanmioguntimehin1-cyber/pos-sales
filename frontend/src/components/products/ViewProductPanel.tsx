@@ -29,7 +29,7 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
     if (s === 'active') return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400">Active</span>;
     if (s === 'low')    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400">Low Stock</span>;
     if (s === 'out')    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400">Out of Stock</span>;
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-400">Inactive</span>;
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--input-bg)] text-muted">Inactive</span>;
   };
 
   const handleClose = () => {
@@ -60,7 +60,7 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
     >
       {product && (
         <div className="space-y-5">
-          <div className="w-full h-48 bg-[#1E2535] border border-white/[0.07] rounded-xl overflow-hidden flex items-center justify-center">
+          <div className="w-full h-48 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl overflow-hidden flex items-center justify-center">
             {product.image ? (
               <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
             ) : (
@@ -69,7 +69,7 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
           </div>
 
           <div className="flex items-center justify-between">
-            <h3 className="text-[18px] font-bold text-slate-100">{product.name}</h3>
+            <h3 className="text-[18px] font-bold text-[var(--text)]">{product.name}</h3>
             {statusBadge(getStatus(product))}
           </div>
 
@@ -78,39 +78,39 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
               { label: 'SKU', value: product.sku || '-' },
               { label: 'Barcode', value: product.barcode || '-' },
             ].map(item => (
-              <div key={item.label} className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-3">
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">{item.label}</div>
-                <div className="text-[13px] text-slate-100 font-medium">{item.value}</div>
+              <div key={item.label} className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+                <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">{item.label}</div>
+                <div className="text-[13px] text-[var(--text)] font-medium">{item.value}</div>
               </div>
             ))}
           </div>
 
-          <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-3">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Category</div>
-            <div className="text-[13px] text-slate-100 font-medium">{product.category?.name || '-'}</div>
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+            <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Category</div>
+            <div className="text-[13px] text-[var(--text)] font-medium">{product.category?.name || '-'}</div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-3">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Price</div>
-              <div className="text-[16px] font-bold tabular-nums text-slate-100">${product.price.toFixed(2)}</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Price</div>
+              <div className="text-[16px] font-bold tabular-nums text-[var(--text)]">${product.price.toFixed(2)}</div>
             </div>
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-3">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Cost</div>
-              <div className="text-[16px] font-bold tabular-nums text-slate-400">${(product.costPrice || 0).toFixed(2)}</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Cost</div>
+              <div className="text-[16px] font-bold tabular-nums text-muted">${(product.costPrice || 0).toFixed(2)}</div>
             </div>
           </div>
 
-          <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-4">
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Stock</div>
-                <div className={`text-[24px] font-extrabold tabular-nums ${product.stock === 0 ? 'text-red-400' : product.stock < (product.lowStockThreshold || 10) ? 'text-amber-400' : 'text-slate-100'}`}>
+                <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Stock</div>
+                <div className={`text-[24px] font-extrabold tabular-nums ${product.stock === 0 ? 'text-red-400' : product.stock < (product.lowStockThreshold || 10) ? 'text-amber-400' : 'text-[var(--text)]'}`}>
                   {product.stock}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Status</div>
+                <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Status</div>
                 <div className={`text-[14px] font-semibold ${product.stock === 0 ? 'text-red-400' : product.stock < (product.lowStockThreshold || 10) ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {product.stock === 0 ? 'Out of Stock' : product.stock < (product.lowStockThreshold || 10) ? 'Low Stock' : 'In Stock'}
                 </div>
@@ -118,16 +118,16 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
             </div>
           </div>
 
-          <div className="bg-[#1E2535] border border-white/[0.07] rounded-lg p-4">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">Profit Analysis</div>
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-4">
+            <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-3">Profit Analysis</div>
             <div className="space-y-2">
               <div className="flex justify-between text-[13px]">
-                <span className="text-slate-400">Gross Profit</span>
-                <span className="text-slate-100 font-medium">${(product.price - (product.costPrice || 0)).toFixed(2)}</span>
+                <span className="text-muted">Gross Profit</span>
+                <span className="text-[var(--text)] font-medium">${(product.price - (product.costPrice || 0)).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-[13px]">
-                <span className="text-slate-400">Profit Margin</span>
-                <span className={`font-medium ${parseInt(margin(product)) > 30 ? 'text-emerald-400' : 'text-slate-100'}`}>{margin(product)}%</span>
+                <span className="text-muted">Profit Margin</span>
+                <span className={`font-medium ${parseInt(margin(product)) > 30 ? 'text-emerald-400' : 'text-[var(--text)]'}`}>{margin(product)}%</span>
               </div>
             </div>
           </div>
