@@ -77,12 +77,12 @@ export function InventoryScreen() {
       <div className="grid grid-cols-4 gap-3">
         {[
           { label: 'Total Products', value: inventory.length.toString(), color: 'text-blue-400'    },
-          { label: 'Total Units',    value: totalUnits.toLocaleString(), color: 'text-slate-100'   },
+          { label: 'Total Units',    value: totalUnits.toLocaleString(), color: 'text-[var(--text)]'   },
           { label: 'Low Stock',     value: lowStockCount.toString(),    color: 'text-amber-400'   },
           { label: 'Out of Stock',  value: outOfStockCount.toString(), color: 'text-red-400'     },
         ].map(c => (
-          <div key={c.label} className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-4">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">{c.label}</div>
+          <div key={c.label} className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+            <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">{c.label}</div>
             <div className={`text-[26px] font-extrabold tabular-nums ${c.color}`}>{c.value}</div>
           </div>
         ))}
@@ -112,7 +112,7 @@ export function InventoryScreen() {
           <>
             <button
               onClick={() => setIsAdjustPanelOpen(false)}
-              className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+              className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
             >
               Cancel
             </button>

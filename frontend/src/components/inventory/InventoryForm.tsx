@@ -2,9 +2,9 @@
 import { Control, FieldErrors, Controller } from 'react-hook-form';
 import { InventoryFormData } from './types';
 
-const inputCls = "w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-blue-500 transition-all";
-const inputErrorCls = "w-full h-9 px-3 bg-[#1E2535] border border-red-500 rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-red-500 transition-all";
-const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5";
+const inputCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all";
+const inputErrorCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-red-500 rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-red-500 transition-all";
+const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5";
 
 interface InventoryFormProps {
   control: Control<InventoryFormData>;
@@ -21,14 +21,14 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
           control={control}
           render={({ field: codeTypeField }) => (
             <div className="space-y-2">
-              <div className="flex gap-1 p-[3px] bg-[#1E2535] rounded-lg border border-white/[0.12] w-fit">
+              <div className="flex gap-1 p-[3px] bg-[var(--surface-2)] rounded-lg border border-[var(--border-strong)] w-fit">
                 <button
                   type="button"
                   onClick={() => codeTypeField.onChange('auto')}
                   className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
                     codeTypeField.value === 'auto'
                       ? 'bg-blue-500 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-muted hover:text-[var(--text)]'
                   }`}
                 >
                   Auto-generate
@@ -39,7 +39,7 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
                   className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
                     codeTypeField.value === 'manual'
                       ? 'bg-blue-500 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-muted hover:text-[var(--text)]'
                   }`}
                 >
                   Manual

@@ -23,7 +23,7 @@ type PayView = 'methods' | 'cash' | 'transfer' | 'pos' | 'split' | 'success';
 const tierBadge: Record<string, string> = {
   platinum: 'bg-violet-500/15 text-violet-400',
   gold: 'bg-amber-500/15 text-amber-400',
-  silver: 'bg-slate-500/15 text-slate-400',
+  silver: 'bg-[var(--input-bg)] text-muted',
   bronze: 'bg-orange-500/15 text-orange-400',
 };
 
@@ -243,17 +243,17 @@ export function POSTerminalScreen() {
       <div className="flex-1 flex flex-col gap-2.5 min-w-0">
         <div className="flex gap-2.5">
           <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle pointer-events-none">
               <IconSearch size={14} />
             </span>
             <input
-              className="w-full h-9 pl-8 pr-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all"
+              className="w-full h-9 pl-8 pr-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all"
               placeholder="Search by name or SKU…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button className="flex items-center gap-1.5 h-9 px-3.5 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 hover:bg-[#252D3D] rounded-lg text-[13px] font-semibold transition-all flex-shrink-0">
+          <button className="flex items-center gap-1.5 h-9 px-3.5 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg text-[13px] font-semibold transition-all flex-shrink-0">
             <IconScan size={14} /> Scan
           </button>
         </div>
@@ -266,7 +266,7 @@ export function POSTerminalScreen() {
               className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all whitespace-nowrap ${
                 activeCat === cat
                   ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                  : 'bg-[#1E2535] border-white/[0.07] text-slate-500 hover:border-white/[0.12] hover:text-slate-400'
+                  : 'bg-[var(--surface-2)] border-[var(--border)] text-subtle hover:border-[var(--border-strong)] hover:text-muted'
               }`}
             >
               {cat}
@@ -278,7 +278,7 @@ export function POSTerminalScreen() {
           {filtered.map(p => {
             const inCart = cart.find(c => c.id === p.id);
             return (
-              <div key={p.id} className="relative bg-[#1E2535] border border-white/[0.07] rounded-xl p-3 text-left transition-all hover:border-blue-500 hover:bg-[#252D3D] hover:-translate-y-px">
+              <div key={p.id} className="relative bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3 text-left transition-all hover:border-blue-500 hover:bg-[var(--input-bg)] hover:-translate-y-px">
                 <button
                   onClick={() => addItem(p)}
                   className="w-full text-left"
@@ -289,14 +289,14 @@ export function POSTerminalScreen() {
                     </div>
                   )}
                   <div className="text-[26px] mb-1.5 leading-none">📦</div>
-                  <div className="text-[11px] font-bold text-slate-100 mb-0.5 leading-snug">{p.name}</div>
-                  <div className="font-mono text-[10px] text-slate-500 mb-1.5">{p.sku}</div>
+                  <div className="text-[11px] font-bold text-[var(--text)] mb-0.5 leading-snug">{p.name}</div>
+                  <div className="font-mono text-[10px] text-subtle mb-1.5">{p.sku}</div>
                   <div className="text-[15px] font-extrabold text-blue-400 tabular-nums">${p.price.toFixed(2)}</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5">{p.category?.name}</div>
+                  <div className="text-[9px] text-subtle mt-0.5">{p.category?.name}</div>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleProductInfo(p); }}
-                  className="absolute top-2 left-2 w-6 h-6 rounded-md bg-[#161B27]/80 border border-white/[0.12] text-slate-400 hover:text-blue-400 hover:border-blue-500/30 flex items-center justify-center transition-all opacity-0 hover:opacity-100"
+                  className="absolute top-2 left-2 w-6 h-6 rounded-md bg-[var(--card)]/80 border border-[var(--border-strong)] text-muted hover:text-blue-400 hover:border-blue-500/30 flex items-center justify-center transition-all opacity-0 hover:opacity-100"
                   title="View Product Info"
                 >
                   <IconInfo size={12} />
@@ -305,22 +305,22 @@ export function POSTerminalScreen() {
             );
           })}
           {!filtered.length && (
-            <div className="col-span-full text-center py-10 text-slate-500 text-xs">No products found</div>
+            <div className="col-span-full text-center py-10 text-subtle text-xs">No products found</div>
           )}
         </div>
       </div>
 
       {/* ── Cart panel ── */}
-      <div className="w-[380px] flex flex-col bg-[#161B27] border border-white/[0.07] rounded-2xl overflow-hidden flex-shrink-0">
+      <div className="w-[380px] flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden flex-shrink-0">
         {/* Header */}
-        <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between flex-shrink-0">
+        <div className="px-3.5 py-3 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
           <div>
-            <div className="font-extrabold text-[13px] text-slate-100">Current Sale</div>
-            <div className="text-[10px] text-slate-500 mt-px">{totalItems} item{totalItems !== 1 ? 's' : ''} in cart</div>
+            <div className="font-extrabold text-[13px] text-[var(--text)]">Current Sale</div>
+            <div className="text-[10px] text-subtle mt-px">{totalItems} item{totalItems !== 1 ? 's' : ''} in cart</div>
           </div>
           <div className="flex gap-1.5">
             {payView !== 'methods' && payView !== 'success' && (
-              <button onClick={goBack} className="h-7 px-2.5 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-md text-[11px] font-semibold transition-all">
+              <button onClick={goBack} className="h-7 px-2.5 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-md text-[11px] font-semibold transition-all">
                 ← Back
               </button>
             )}
@@ -333,14 +333,14 @@ export function POSTerminalScreen() {
         </div>
 
         {/* Customer Selection */}
-        <div className="px-3 py-2 border-b border-white/[0.07] bg-[#1E2535] flex-shrink-0">
+        <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] flex-shrink-0">
           {selectedCustomer ? (
-            <div className="flex items-center gap-2 p-2 bg-[#161B27] border border-white/[0.12] rounded-lg">
+            <div className="flex items-center gap-2 p-2 bg-[var(--card)] border border-[var(--border-strong)] rounded-lg">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-[10px] font-extrabold text-white">
                 {selectedCustomer.name.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-semibold text-slate-100 truncate">{selectedCustomer.name}</div>
+                <div className="text-[11px] font-semibold text-[var(--text)] truncate">{selectedCustomer.name}</div>
                 <div className="flex items-center gap-1.5">
                   <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold ${tierBadge[selectedCustomer.tier]}`}>
                     ★ {selectedCustomer.tier}
@@ -349,7 +349,7 @@ export function POSTerminalScreen() {
               </div>
               <button
                 onClick={handleRemoveCustomer}
-                className="w-5 h-5 rounded flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
+                className="w-5 h-5 rounded flex items-center justify-center text-subtle hover:text-red-400 transition-all"
               >
                 <IconXCircle size={14} />
               </button>
@@ -358,7 +358,7 @@ export function POSTerminalScreen() {
             <div className="relative">
               <button
                 onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
-                className="w-full h-8 px-2.5 bg-[#161B27] border border-white/[0.12] rounded-lg text-[11px] text-slate-500 flex items-center justify-between hover:border-white/[0.2] transition-all"
+                className="w-full h-8 px-2.5 bg-[var(--card)] border border-[var(--border-strong)] rounded-lg text-[11px] text-subtle flex items-center justify-between hover:border-[var(--border-strong)] transition-all"
               >
                 <span className="flex items-center gap-2">
                   <IconUser size={12} />
@@ -367,10 +367,10 @@ export function POSTerminalScreen() {
                 <IconChevronDown size={12} />
               </button>
               {isCustomerDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E2535] border border-white/[0.12] rounded-lg shadow-xl z-50 overflow-hidden">
-                  <div className="p-2 border-b border-white/[0.07]">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="p-2 border-b border-[var(--border)]">
                     <input
-                      className="w-full h-8 px-2.5 bg-[#161B27] border border-white/[0.12] rounded-md text-[11px] text-slate-100 placeholder:text-slate-500 outline-none focus:border-blue-500"
+                      className="w-full h-8 px-2.5 bg-[var(--card)] border border-[var(--border-strong)] rounded-md text-[11px] text-[var(--text)] placeholder:text-subtle outline-none focus:border-blue-500"
                       placeholder="Search..."
                       value={customerSearch}
                       onChange={e => setCustomerSearch(e.target.value)}
@@ -380,7 +380,7 @@ export function POSTerminalScreen() {
                   <div className="max-h-48 overflow-y-auto">
                     <button
                       onClick={() => { setIsAddCustomerOpen(true); setIsCustomerDropdownOpen(false); }}
-                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-emerald-500/10 transition-colors text-left border-b border-white/[0.07]"
+                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-emerald-500/10 transition-colors text-left border-b border-[var(--border)]"
                     >
                       <div className="w-6 h-6 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400">
                         <IconPlus size={12} />
@@ -388,20 +388,20 @@ export function POSTerminalScreen() {
                       <div className="text-[11px] font-semibold text-emerald-400">Add New Customer</div>
                     </button>
                     {filteredCustomers.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-[11px] text-slate-500">No customers found</div>
+                      <div className="px-3 py-4 text-center text-[11px] text-subtle">No customers found</div>
                     ) : (
                       filteredCustomers.map(customer => (
                         <button
                           key={customer.id}
                           onClick={() => handleSelectCustomer(customer)}
-                          className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/[0.05] transition-colors text-left"
+                          className="w-full px-3 py-2 flex items-center gap-2 hover:bg-[var(--input-bg)] transition-colors text-left"
                         >
                           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-[9px] font-extrabold text-white flex-shrink-0">
                             {customer.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[11px] font-semibold text-slate-100 truncate">{customer.name}</div>
-                            <div className="text-[9px] text-slate-500 truncate">{customer.phone}</div>
+                            <div className="text-[11px] font-semibold text-[var(--text)] truncate">{customer.name}</div>
+                            <div className="text-[9px] text-subtle truncate">{customer.phone}</div>
                           </div>
                           <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold flex-shrink-0 ${tierBadge[customer.tier]}`}>
                             ★ {customer.tier}
@@ -423,10 +423,10 @@ export function POSTerminalScreen() {
               <IconCheck size={32} />
             </div>
             <div className="text-xl font-extrabold text-emerald-400">Payment Successful!</div>
-            <div className="text-[30px] font-extrabold text-slate-100 tabular-nums">${total.toFixed(2)}</div>
+            <div className="text-[30px] font-extrabold text-[var(--text)] tabular-nums">${total.toFixed(2)}</div>
             {selectedCustomer && (
-              <div className="text-[12px] text-slate-400">
-                Purchase recorded for <span className="text-slate-200 font-semibold">{selectedCustomer.name}</span>
+              <div className="text-[12px] text-muted">
+                Purchase recorded for <span className="text-[var(--text)] font-semibold">{selectedCustomer.name}</span>
               </div>
             )}
           </div>
@@ -437,53 +437,53 @@ export function POSTerminalScreen() {
           <>
             <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-1.5">
               {cart.length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-2.5 text-slate-500 py-10 text-center">
+                <div className="flex-1 flex flex-col items-center justify-center gap-2.5 text-subtle py-10 text-center">
                   <div className="text-[36px]">🛒</div>
                   <div className="text-[13px] font-semibold">Cart is empty</div>
                   <div className="text-xs">Tap a product to add it</div>
                 </div>
               )}
               {cart.map(item => (
-                <div key={item.id} className="flex items-center gap-2.5 p-2.5 bg-[#1E2535] border border-white/[0.07] hover:border-white/[0.12] rounded-lg transition-all">
+                <div key={item.id} className="flex items-center gap-2.5 p-2.5 bg-[var(--surface-2)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-lg transition-all">
                   <button
                     onClick={() => handleProductInfo(item)}
-                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all flex-shrink-0"
+                    className="w-7 h-7 rounded flex items-center justify-center text-subtle hover:text-blue-400 hover:bg-blue-500/10 transition-all flex-shrink-0"
                     title="View Product Info"
                   >
                     <IconInfo size={13} />
                   </button>
                   <div className="text-[20px] flex-shrink-0">📦</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-100 truncate">{item.name}</div>
-                    <div className="font-mono text-[10px] text-slate-500 mt-px">{item.sku} · ${item.price.toFixed(2)} ea</div>
+                    <div className="text-xs font-bold text-[var(--text)] truncate">{item.name}</div>
+                    <div className="font-mono text-[10px] text-subtle mt-px">{item.sku} · ${item.price.toFixed(2)} ea</div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 rounded-md border border-white/[0.12] bg-[#252D3D] text-slate-400 hover:bg-blue-500/15 hover:border-blue-500/30 hover:text-blue-400 flex items-center justify-center transition-all active:scale-90">
+                    <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 rounded-md border border-[var(--border-strong)] bg-[var(--input-bg)] text-muted hover:bg-blue-500/15 hover:border-blue-500/30 hover:text-blue-400 flex items-center justify-center transition-all active:scale-90">
                       <IconMinus size={10} />
                     </button>
-                    <span className="text-[13px] font-extrabold text-slate-100 min-w-[18px] text-center tabular-nums">{item.qty}</span>
-                    <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 rounded-md border border-white/[0.12] bg-[#252D3D] text-slate-400 hover:bg-blue-500/15 hover:border-blue-500/30 hover:text-blue-400 flex items-center justify-center transition-all active:scale-90">
+                    <span className="text-[13px] font-extrabold text-[var(--text)] min-w-[18px] text-center tabular-nums">{item.qty}</span>
+                    <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 rounded-md border border-[var(--border-strong)] bg-[var(--input-bg)] text-muted hover:bg-blue-500/15 hover:border-blue-500/30 hover:text-blue-400 flex items-center justify-center transition-all active:scale-90">
                       <IconPlus size={10} />
                     </button>
                   </div>
-                  <div className="text-[13px] font-extrabold text-slate-100 min-w-[50px] text-right tabular-nums">${(item.price * item.qty).toFixed(2)}</div>
-                  <button onClick={() => removeItem(item.id)} className="w-6 h-6 rounded-md flex items-center justify-center text-slate-500 hover:text-red-400 transition-all flex-shrink-0">
+                  <div className="text-[13px] font-extrabold text-[var(--text)] min-w-[50px] text-right tabular-nums">${(item.price * item.qty).toFixed(2)}</div>
+                  <button onClick={() => removeItem(item.id)} className="w-6 h-6 rounded-md flex items-center justify-center text-subtle hover:text-red-400 transition-all flex-shrink-0">
                     <IconX size={11} />
                   </button>
                 </div>
               ))}
             </div>
 
-            <div className="p-3.5 border-t border-white/[0.07] bg-[#1E2535] flex-shrink-0">
+            <div className="p-3.5 border-t border-[var(--border)] bg-[var(--surface-2)] flex-shrink-0">
               <div className="flex flex-col gap-1 mb-3">
-                <div className="flex justify-between text-xs text-slate-400">
+                <div className="flex justify-between text-xs text-muted">
                   <span>Subtotal</span><span className="tabular-nums">${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400">
+                <div className="flex justify-between text-xs text-muted">
                   <span>Tax (8.25%)</span><span className="tabular-nums">${tax.toFixed(2)}</span>
                 </div>
-                <div className="h-px bg-white/[0.07] my-1" />
-                <div className="flex justify-between text-lg font-extrabold text-slate-100">
+                <div className="h-px bg-[var(--input-bg)] my-1" />
+                <div className="flex justify-between text-lg font-extrabold text-[var(--text)]">
                   <span>Total</span><span className="tabular-nums">${total.toFixed(2)}</span>
                 </div>
                 {selectedCustomer && (
@@ -497,26 +497,26 @@ export function POSTerminalScreen() {
                 <button
                   disabled={cart.length === 0}
                   onClick={() => setPayView('cash')}
-                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:bg-[#2E3748] hover:border-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
+                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
                 >
                   <span className="text-lg">💵</span>
-                  <span className="text-[10px] font-bold text-slate-300">Cash</span>
+                  <span className="text-[10px] font-bold text-muted">Cash</span>
                 </button>
                 <button
                   disabled={cart.length === 0}
                   onClick={() => setPayView('transfer')}
-                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:bg-[#2E3748] hover:border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
+                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
                 >
                   <span className="text-lg">🏦</span>
-                  <span className="text-[10px] font-bold text-slate-300">Transfer</span>
+                  <span className="text-[10px] font-bold text-muted">Transfer</span>
                 </button>
                 <button
                   disabled={cart.length === 0}
                   onClick={() => setPayView('pos')}
-                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:bg-[#2E3748] hover:border-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
+                  className="h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:bg-[var(--input-bg)] hover:border-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all"
                 >
                   <span className="text-lg">💳</span>
-                  <span className="text-[10px] font-bold text-slate-300">POS Machine</span>
+                  <span className="text-[10px] font-bold text-muted">POS Machine</span>
                 </button>
                 <button
                   disabled={cart.length === 0}
@@ -527,7 +527,7 @@ export function POSTerminalScreen() {
                   <span className="text-[10px] font-bold text-blue-400">Split Payment</span>
                 </button>
               </div>
-              <button disabled={cart.length === 0} className="w-full h-9 flex items-center justify-center gap-1.5 bg-transparent border border-white/[0.07] text-slate-400 hover:text-slate-200 hover:border-white/[0.12] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-xs font-semibold transition-all">
+              <button disabled={cart.length === 0} className="w-full h-9 flex items-center justify-center gap-1.5 bg-transparent border border-[var(--border)] text-muted hover:text-[var(--text)] hover:border-[var(--border-strong)] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-xs font-semibold transition-all">
                 <IconPrinter size={12} /> Print Receipt
               </button>
             </div>
@@ -537,9 +537,9 @@ export function POSTerminalScreen() {
         {/* CASH PAYMENT */}
         {payView === 'cash' && (
           <div className="flex-1 flex flex-col p-3.5 gap-2.5 overflow-y-auto">
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-3 text-center">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Amount Due</div>
-              <div className="text-[30px] font-extrabold text-slate-100 tabular-nums">${total.toFixed(2)}</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-0.5">Amount Due</div>
+              <div className="text-[30px] font-extrabold text-[var(--text)] tabular-nums">${total.toFixed(2)}</div>
             </div>
             <div className="bg-emerald-500/15 border border-emerald-500/30 rounded-xl p-2.5 text-center">
               <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-0.5">Cash Received</div>
@@ -557,7 +557,7 @@ export function POSTerminalScreen() {
             )}
             <div className="grid grid-cols-3 gap-1.5">
               {['20', '50', '100'].map(v => (
-                <button key={v} onClick={() => setCashInput(v)} className="h-9 bg-[#1E2535] border border-white/[0.12] text-slate-300 hover:bg-[#252D3D] hover:text-slate-100 rounded-lg text-[13px] font-semibold transition-all">
+                <button key={v} onClick={() => setCashInput(v)} className="h-9 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:bg-[var(--input-bg)] hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all">
                   ${v}
                 </button>
               ))}
@@ -570,7 +570,7 @@ export function POSTerminalScreen() {
                   className={`h-11 rounded-xl text-[18px] font-bold transition-all active:scale-90 ${
                     k === 'DEL'
                       ? 'bg-red-500/10 border border-red-500/25 text-red-400 text-xs'
-                      : 'bg-[#1E2535] border border-white/[0.07] text-slate-100 hover:bg-[#252D3D] hover:border-white/[0.12]'
+                      : 'bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--input-bg)] hover:border-[var(--border-strong)]'
                   }`}
                 >
                   {k}
@@ -590,13 +590,13 @@ export function POSTerminalScreen() {
         {/* TRANSFER PAYMENT */}
         {payView === 'transfer' && (
           <div className="flex-1 flex flex-col p-3.5 gap-4">
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-3 text-center">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Amount Due</div>
-              <div className="text-[30px] font-extrabold text-slate-100 tabular-nums">${total.toFixed(2)}</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-0.5">Amount Due</div>
+              <div className="text-[30px] font-extrabold text-[var(--text)] tabular-nums">${total.toFixed(2)}</div>
             </div>
             
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Select Bank</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-2">Select Bank</div>
               <div className="grid grid-cols-2 gap-2">
                 {BANKS.map(bank => (
                   <button
@@ -605,7 +605,7 @@ export function POSTerminalScreen() {
                     className={`h-16 flex flex-col items-center justify-center gap-2 rounded-xl border transition-all ${
                       selectedBank === bank.id
                         ? 'bg-blue-500/15 border-blue-500/50 text-blue-400'
-                        : 'bg-[#1E2535] border-white/[0.12] text-slate-300 hover:border-white/[0.2]'
+                        : 'bg-[var(--surface-2)] border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                     }`}
                   >
                     <span className="text-2xl">🏦</span>
@@ -615,14 +615,14 @@ export function POSTerminalScreen() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-[#1E2535] border-2 border-dashed border-white/[0.12] rounded-xl p-4 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-[var(--surface-2)] border-2 border-dashed border-[var(--border-strong)] rounded-xl p-4 text-center">
               <div className="w-14 h-14 rounded-full bg-blue-500/15 flex items-center justify-center text-blue-400">
                 <IconRefresh size={24} />
               </div>
-              <div className="text-[13px] font-bold text-slate-100">
+              <div className="text-[13px] font-bold text-[var(--text)]">
                 {selectedBank ? `${bankLabels[selectedBank]} Transfer` : 'Select a Bank'}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-subtle">
                 {selectedBank ? 'Show this amount to customer for transfer' : 'Choose a bank above'}
               </div>
             </div>
@@ -640,13 +640,13 @@ export function POSTerminalScreen() {
         {/* POS MACHINE PAYMENT */}
         {payView === 'pos' && (
           <div className="flex-1 flex flex-col p-3.5 gap-4">
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-3 text-center">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Amount Due</div>
-              <div className="text-[30px] font-extrabold text-slate-100 tabular-nums">${total.toFixed(2)}</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-0.5">Amount Due</div>
+              <div className="text-[30px] font-extrabold text-[var(--text)] tabular-nums">${total.toFixed(2)}</div>
             </div>
             
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Select POS Machine</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-2">Select POS Machine</div>
               <div className="grid grid-cols-2 gap-2">
                 {POS_MACHINES.map(pos => (
                   <button
@@ -655,7 +655,7 @@ export function POSTerminalScreen() {
                     className={`h-16 flex flex-col items-center justify-center gap-2 rounded-xl border transition-all ${
                       selectedPOS === pos.id
                         ? 'bg-amber-500/15 border-amber-500/50 text-amber-400'
-                        : 'bg-[#1E2535] border-white/[0.12] text-slate-300 hover:border-white/[0.2]'
+                        : 'bg-[var(--surface-2)] border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                     }`}
                   >
                     <span className="text-2xl">💳</span>
@@ -665,14 +665,14 @@ export function POSTerminalScreen() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-[#1E2535] border-2 border-dashed border-white/[0.12] rounded-xl p-4 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-[var(--surface-2)] border-2 border-dashed border-[var(--border-strong)] rounded-xl p-4 text-center">
               <div className="w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-400">
                 <IconCreditCard size={24} />
               </div>
-              <div className="text-[13px] font-bold text-slate-100">
+              <div className="text-[13px] font-bold text-[var(--text)]">
                 {selectedPOS ? posLabels[selectedPOS] : 'Select POS Machine'}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-subtle">
                 {selectedPOS ? 'Ready to process card payment' : 'Choose a POS machine above'}
               </div>
             </div>
@@ -690,10 +690,10 @@ export function POSTerminalScreen() {
         {/* SPLIT PAYMENT */}
         {payView === 'split' && (
           <div className="flex-1 flex flex-col p-3.5 gap-3 overflow-y-auto">
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-3">
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Total Due</span>
-                <span className="text-[18px] font-extrabold text-slate-100 tabular-nums">${total.toFixed(2)}</span>
+                <span className="text-[10px] text-subtle font-bold uppercase tracking-widest">Total Due</span>
+                <span className="text-[18px] font-extrabold text-[var(--text)] tabular-nums">${total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Paid</span>
@@ -708,17 +708,17 @@ export function POSTerminalScreen() {
             </div>
 
             {splitPayments.length > 0 && (
-              <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl overflow-hidden">
-                <div className="px-3 py-2 border-b border-white/[0.07]">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Payments</span>
+              <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-[var(--border)]">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-subtle">Payments</span>
                 </div>
                 {splitPayments.map(payment => (
-                  <div key={payment.id} className="px-3 py-2.5 flex items-center justify-between border-b border-white/[0.07] last:border-0">
+                  <div key={payment.id} className="px-3 py-2.5 flex items-center justify-between border-b border-[var(--border)] last:border-0">
                     <div className="flex items-center gap-2">
                       <span className="text-base">{methodIcons[payment.method]}</span>
                       <div>
-                        <div className="text-[12px] font-semibold text-slate-100 capitalize">{payment.method}</div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[12px] font-semibold text-[var(--text)] capitalize">{payment.method}</div>
+                        <div className="text-[10px] text-subtle">
                           {payment.method === 'transfer' && payment.bank && bankLabels[payment.bank]}
                           {payment.method === 'pos' && payment.posMachine && posLabels[payment.posMachine]}
                           {payment.method === 'cash' && 'Cash'}
@@ -729,7 +729,7 @@ export function POSTerminalScreen() {
                       <span className="text-[13px] font-extrabold text-emerald-400">${payment.amount.toFixed(2)}</span>
                       <button
                         onClick={() => removeSplitPayment(payment.id)}
-                        className="w-5 h-5 rounded flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
+                        className="w-5 h-5 rounded flex items-center justify-center text-subtle hover:text-red-400 transition-all"
                       >
                         <IconX size={12} />
                       </button>
@@ -742,34 +742,34 @@ export function POSTerminalScreen() {
             {splitRemaining > 0 && (
               <>
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Add Payment Method</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-2">Add Payment Method</div>
                   <div className="grid grid-cols-3 gap-1.5">
                     <button
                       onClick={() => setSplitPaymentType('cash')}
-                      className={`h-12 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border transition-all ${
-                        splitPaymentType === 'cash' ? 'border-emerald-500/50' : 'border-white/[0.12] hover:border-emerald-500/30'
+                      className={`h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border transition-all ${
+                        splitPaymentType === 'cash' ? 'border-emerald-500/50' : 'border-[var(--border-strong)] hover:border-emerald-500/30'
                       } rounded-lg`}
                     >
                       <span className="text-lg">💵</span>
-                      <span className="text-[9px] font-bold text-slate-300">Cash</span>
+                      <span className="text-[9px] font-bold text-muted">Cash</span>
                     </button>
                     <button
                       onClick={() => setSplitPaymentType('transfer')}
-                      className={`h-12 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border transition-all ${
-                        splitPaymentType === 'transfer' ? 'border-blue-500/50' : 'border-white/[0.12] hover:border-blue-500/30'
+                      className={`h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border transition-all ${
+                        splitPaymentType === 'transfer' ? 'border-blue-500/50' : 'border-[var(--border-strong)] hover:border-blue-500/30'
                       } rounded-lg`}
                     >
                       <span className="text-lg">🏦</span>
-                      <span className="text-[9px] font-bold text-slate-300">Transfer</span>
+                      <span className="text-[9px] font-bold text-muted">Transfer</span>
                     </button>
                     <button
                       onClick={() => setSplitPaymentType('pos')}
-                      className={`h-12 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border transition-all ${
-                        splitPaymentType === 'pos' ? 'border-amber-500/50' : 'border-white/[0.12] hover:border-amber-500/30'
+                      className={`h-12 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border transition-all ${
+                        splitPaymentType === 'pos' ? 'border-amber-500/50' : 'border-[var(--border-strong)] hover:border-amber-500/30'
                       } rounded-lg`}
                     >
                       <span className="text-lg">💳</span>
-                      <span className="text-[9px] font-bold text-slate-300">POS</span>
+                      <span className="text-[9px] font-bold text-muted">POS</span>
                     </button>
                   </div>
                 </div>
@@ -789,7 +789,7 @@ export function POSTerminalScreen() {
                           className={`h-10 rounded-lg text-[16px] font-bold transition-all active:scale-95 ${
                             k === 'DEL'
                               ? 'bg-red-500/10 border border-red-500/25 text-red-400 text-xs'
-                              : 'bg-[#1E2535] border border-white/[0.07] text-slate-100 hover:bg-[#252D3D]'
+                              : 'bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--input-bg)]'
                           }`}
                         >
                           {k}
@@ -818,18 +818,18 @@ export function POSTerminalScreen() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => addSplitPayment('transfer', splitRemaining, 'gtb')}
-                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:border-blue-500/50 rounded-xl transition-all"
+                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:border-blue-500/50 rounded-xl transition-all"
                     >
                       <span className="text-2xl">🏦</span>
-                      <span className="text-[11px] font-bold text-slate-200">GTBank</span>
+                      <span className="text-[11px] font-bold text-[var(--text)]">GTBank</span>
                       <span className="text-[10px] font-bold text-blue-400">${splitRemaining.toFixed(2)}</span>
                     </button>
                     <button
                       onClick={() => addSplitPayment('transfer', splitRemaining, 'firstbank')}
-                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:border-blue-500/50 rounded-xl transition-all"
+                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:border-blue-500/50 rounded-xl transition-all"
                     >
                       <span className="text-2xl">🏦</span>
-                      <span className="text-[11px] font-bold text-slate-200">FirstBank</span>
+                      <span className="text-[11px] font-bold text-[var(--text)]">FirstBank</span>
                       <span className="text-[10px] font-bold text-blue-400">${splitRemaining.toFixed(2)}</span>
                     </button>
                   </div>
@@ -839,18 +839,18 @@ export function POSTerminalScreen() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => addSplitPayment('pos', splitRemaining, undefined, 'gtb_pos')}
-                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:border-amber-500/50 rounded-xl transition-all"
+                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:border-amber-500/50 rounded-xl transition-all"
                     >
                       <span className="text-2xl">💳</span>
-                      <span className="text-[11px] font-bold text-slate-200">GTBank POS</span>
+                      <span className="text-[11px] font-bold text-[var(--text)]">GTBank POS</span>
                       <span className="text-[10px] font-bold text-amber-400">${splitRemaining.toFixed(2)}</span>
                     </button>
                     <button
                       onClick={() => addSplitPayment('pos', splitRemaining, undefined, 'firstbank_pos')}
-                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[#252D3D] border border-white/[0.12] hover:border-amber-500/50 rounded-xl transition-all"
+                      className="h-16 flex flex-col items-center justify-center gap-1 bg-[var(--input-bg)] border border-[var(--border-strong)] hover:border-amber-500/50 rounded-xl transition-all"
                     >
                       <span className="text-2xl">💳</span>
-                      <span className="text-[11px] font-bold text-slate-200">FirstBank POS</span>
+                      <span className="text-[11px] font-bold text-[var(--text)]">FirstBank POS</span>
                       <span className="text-[10px] font-bold text-amber-400">${splitRemaining.toFixed(2)}</span>
                     </button>
                   </div>

@@ -38,10 +38,10 @@ export const emptyFormData: ProductFormData = {
 const categories = ['Electronics', 'Cases', 'Accessories', 'Cables'];
 const emojis = ['🎧', '🔌', '📱', '⚡', '💻', '🔗', '🔊', '🛡️', '⌨️', '🖱️', '🎮', '📀', '🔋', '💡', '🎤', '📷'];
 
-const inputCls = "w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-blue-500 transition-all";
-const inputErrorCls = "w-full h-9 px-3 bg-[#1E2535] border border-red-500 rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-red-500 transition-all";
-const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5";
-const selectCls = "w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-300 text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
+const inputCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all";
+const inputErrorCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-red-500 rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-red-500 transition-all";
+const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5";
+const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 
 interface ProductFormProps {
   control: Control<ProductFormData>;
@@ -104,24 +104,24 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
           control={control}
           render={({ field }) =>
             imagePreview ? (
-              <div className="relative w-full h-40 bg-[#1E2535] border border-white/[0.12] rounded-lg overflow-hidden">
+              <div className="relative w-full h-40 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg overflow-hidden">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeImage(field.onChange)}
-                  className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-lg bg-black/50 text-white hover:bg-black/70 transition-all"
+                  className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--overlay)] text-white hover:bg-[var(--overlay)] transition-all"
                 >
                   <IconX size={14} />
                 </button>
                 {isEdit && (
-                  <div className="absolute bottom-2 left-2 text-[10px] text-slate-400 bg-black/50 px-2 py-1 rounded">
+                  <div className="absolute bottom-2 left-2 text-[10px] text-muted bg-[var(--overlay)] px-2 py-1 rounded">
                     New image selected
                   </div>
                 )}
               </div>
             ) : (
               <div
-                className={`relative w-full h-40 border-2 border-dashed rounded-lg transition-all cursor-pointer ${dragActive ? 'border-blue-500 bg-blue-500/5' : 'border-white/[0.12] hover:border-white/[0.2]'}`}
+                className={`relative w-full h-40 border-2 border-dashed rounded-lg transition-all cursor-pointer ${dragActive ? 'border-blue-500 bg-blue-500/5' : 'border-[var(--border-strong)] hover:border-[var(--border-strong)]'}`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -135,9 +135,9 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
                   onChange={(e) => handleFileInput(e, field.onChange)}
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <IconUpload size={24} className="text-slate-500 mb-2" />
-                  <span className="text-[13px] text-slate-400">Drag & drop or click to upload</span>
-                  <span className="text-[11px] text-slate-500 mt-1">PNG, JPG, GIF up to 5MB</span>
+                  <IconUpload size={24} className="text-subtle mb-2" />
+                  <span className="text-[13px] text-muted">Drag & drop or click to upload</span>
+                  <span className="text-[11px] text-subtle mt-1">PNG, JPG, GIF up to 5MB</span>
                 </div>
               </div>
             )
@@ -152,14 +152,14 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
           control={control}
           render={({ field: codeTypeField }) => (
             <div className="space-y-2">
-              <div className="flex gap-1 p-[3px] bg-[#1E2535] rounded-lg border border-white/[0.12] w-fit">
+              <div className="flex gap-1 p-[3px] bg-[var(--surface-2)] rounded-lg border border-[var(--border-strong)] w-fit">
                 <button
                   type="button"
                   onClick={() => codeTypeField.onChange('auto')}
                   className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
                     codeTypeField.value === 'auto'
                       ? 'bg-blue-500 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-muted hover:text-[var(--text)]'
                   }`}
                 >
                   Auto-generate
@@ -170,7 +170,7 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
                   className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
                     codeTypeField.value === 'manual'
                       ? 'bg-blue-500 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-muted hover:text-[var(--text)]'
                   }`}
                 >
                   Manual
@@ -369,13 +369,13 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
           name="emoji"
           control={control}
           render={({ field }) => (
-            <div className="grid grid-cols-8 gap-1.5 p-2 bg-[#1E2535] border border-white/[0.12] rounded-lg">
+            <div className="grid grid-cols-8 gap-1.5 p-2 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg">
               {emojis.map(e => (
                 <button
                   key={e}
                   type="button"
                   onClick={() => field.onChange(e)}
-                  className={`w-8 h-8 flex items-center justify-center text-base rounded-md transition-all ${field.value === e ? 'bg-blue-500 text-white' : 'hover:bg-white/[0.05]'}`}
+                  className={`w-8 h-8 flex items-center justify-center text-base rounded-md transition-all ${field.value === e ? 'bg-blue-500 text-white' : 'hover:bg-[var(--input-bg)]'}`}
                 >
                   {e}
                 </button>

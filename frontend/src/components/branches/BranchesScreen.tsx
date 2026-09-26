@@ -9,7 +9,7 @@ import { DeleteBranchModal } from './DeleteBranchModal';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useBranches, useCreateBranch, useUpdateBranch, useDeleteBranch, Branch } from '@/lib/hooks';
 
-const selectCls = "w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-300 text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
+const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 
 export function BranchesScreen() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -65,28 +65,28 @@ export function BranchesScreen() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-4">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Total Branches</div>
+        <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Total Branches</div>
           <div className="text-[26px] font-extrabold text-blue-400">{isLoading ? '...' : branches.length}</div>
         </div>
-        <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-4">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Active</div>
+        <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Active</div>
           <div className="text-[26px] font-extrabold text-emerald-400">{isLoading ? '...' : branches.length}</div>
         </div>
-        <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl p-4">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Inactive</div>
-          <div className="text-[26px] font-extrabold text-slate-400">0</div>
+        <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Inactive</div>
+          <div className="text-[26px] font-extrabold text-muted">0</div>
         </div>
       </div>
 
-      <div className="bg-[#161B27] border border-white/[0.07] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 flex items-center gap-2.5 border-b border-white/[0.07] flex-wrap">
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+        <div className="px-4 py-3 flex items-center gap-2.5 border-b border-[var(--border)] flex-wrap">
           <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle pointer-events-none">
               <IconSearch size={14} />
             </span>
             <input
-              className="w-full h-9 pl-8 pr-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-blue-500 transition-all"
+              className="w-full h-9 pl-8 pr-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all"
               placeholder="Search branches..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -115,7 +115,7 @@ export function BranchesScreen() {
               <thead>
                 <tr>
                   {['Branch Name', 'Address', 'Phone', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-white/[0.07] bg-[#1E2535] whitespace-nowrap">
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -123,31 +123,31 @@ export function BranchesScreen() {
               </thead>
               <tbody>
                 {filteredBranches.map(branch => (
-                  <tr key={branch.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3.5 border-b border-white/[0.07]">
+                  <tr key={branch.id} className="hover:bg-[var(--input-bg)] transition-colors">
+                    <td className="px-4 py-3.5 border-b border-[var(--border)]">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                           <IconStore size={14} />
                         </div>
-                        <span className="font-semibold text-slate-100 text-[13px]">{branch.name}</span>
+                        <span className="font-semibold text-[var(--text)] text-[13px]">{branch.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 border-b border-white/[0.07] text-[12px] text-slate-400 max-w-[200px] truncate">{branch.address || '-'}</td>
-                    <td className="px-4 py-3.5 border-b border-white/[0.07] text-[12px] text-slate-400">{branch.phone || '-'}</td>
-                    <td className="px-4 py-3.5 border-b border-white/[0.07]">
+                    <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted max-w-[200px] truncate">{branch.address || '-'}</td>
+                    <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted">{branch.phone || '-'}</td>
+                    <td className="px-4 py-3.5 border-b border-[var(--border)]">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         branch.isDefault 
                           ? 'bg-emerald-500/15 text-emerald-400' 
-                          : 'bg-slate-500/15 text-slate-400'
+                          : 'bg-[var(--input-bg)] text-muted'
                       }`}>
                         {branch.isDefault ? 'Default' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 border-b border-white/[0.07]">
+                    <td className="px-4 py-3.5 border-b border-[var(--border)]">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setViewPanelBranch(branch)}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-blue-400 hover:bg-blue-500/10 transition-all"
                           title="View Details"
                         >
                           <IconEye size={14} />
@@ -157,7 +157,7 @@ export function BranchesScreen() {
                             setSelectedBranch(branch);
                             setIsEditModalOpen(true);
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
                           title="Edit Branch"
                         >
                           <IconEdit size={14} />
@@ -167,7 +167,7 @@ export function BranchesScreen() {
                             setSelectedBranch(branch);
                             setIsDeleteModalOpen(true);
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
                           title="Delete Branch"
                         >
                           <IconTrash size={14} />
@@ -181,8 +181,8 @@ export function BranchesScreen() {
           )}
         </div>
 
-        <div className="px-4 py-2.5 border-t border-white/[0.07] bg-[#1E2535]">
-          <span className="text-xs text-slate-500">
+        <div className="px-4 py-2.5 border-t border-[var(--border)] bg-[var(--surface-2)]">
+          <span className="text-xs text-subtle">
             Showing {filteredBranches.length} of {branches.length} branches
           </span>
         </div>

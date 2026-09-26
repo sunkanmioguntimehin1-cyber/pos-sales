@@ -49,7 +49,7 @@ export function EditStaffModal({ isOpen, onClose, onEdit, staff }: EditStaffModa
         <>
           <button
             onClick={handleClose}
-            className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+            className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
           >
             Cancel
           </button>

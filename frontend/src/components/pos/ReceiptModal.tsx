@@ -47,7 +47,7 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
         <>
           <button
             onClick={handleClose}
-            className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+            className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
           >
             {sent ? 'Done' : 'Skip'}
           </button>
@@ -77,8 +77,8 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
               <IconCheck size={32} />
             </div>
             <div className="text-center">
-              <div className="text-[15px] font-bold text-slate-100 mb-1">Receipt Sent Successfully!</div>
-              <div className="text-[12px] text-slate-400">Receipt has been sent to {email}</div>
+              <div className="text-[15px] font-bold text-[var(--text)] mb-1">Receipt Sent Successfully!</div>
+              <div className="text-[12px] text-muted">Receipt has been sent to {email}</div>
             </div>
           </div>
         ) : (
@@ -88,54 +88,54 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
                 <IconMail size={18} />
               </div>
               <div>
-                <div className="text-[13px] font-semibold text-slate-100">Email Receipt</div>
-                <div className="text-[11px] text-slate-400">Send a digital copy to the customer</div>
+                <div className="text-[13px] font-semibold text-[var(--text)]">Email Receipt</div>
+                <div className="text-[11px] text-muted">Send a digital copy to the customer</div>
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
                 Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-blue-500 transition-all"
+                className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all"
                 placeholder="customer@email.com"
               />
             </div>
 
-            <div className="bg-[#1E2535] border border-white/[0.07] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/[0.07]">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Receipt Preview</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--border)]">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-subtle">Receipt Preview</div>
               </div>
               <div className="p-4">
-                <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                <div className="flex justify-between text-[11px] text-muted mb-1">
                   <span>Subtotal</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-400 mb-2">
+                <div className="flex justify-between text-[11px] text-muted mb-2">
                   <span>Tax (8.25%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-[13px] font-bold text-slate-100 pt-2 border-t border-white/[0.07]">
+                <div className="flex justify-between text-[13px] font-bold text-[var(--text)] pt-2 border-t border-[var(--border)]">
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
-                <div className="mt-3 pt-3 border-t border-white/[0.07]">
-                  <div className="flex justify-between text-[11px] text-slate-400">
+                <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                  <div className="flex justify-between text-[11px] text-muted">
                     <span>Payment</span>
-                    <span className="text-slate-200">{paymentMethod}</span>
+                    <span className="text-[var(--text)]">{paymentMethod}</span>
                   </div>
-                  <div className="flex justify-between text-[11px] text-slate-400">
+                  <div className="flex justify-between text-[11px] text-muted">
                     <span>Cashier</span>
-                    <span className="text-slate-200">{staffName}</span>
+                    <span className="text-[var(--text)]">{staffName}</span>
                   </div>
                   {customer && (
-                    <div className="flex justify-between text-[11px] text-slate-400">
+                    <div className="flex justify-between text-[11px] text-muted">
                       <span>Customer</span>
-                      <span className="text-slate-200">{customer.name}</span>
+                      <span className="text-[var(--text)]">{customer.name}</span>
                     </div>
                   )}
                 </div>

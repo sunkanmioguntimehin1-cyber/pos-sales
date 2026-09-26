@@ -1,71 +1,69 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
 import { useThemeStore, Theme } from '@/store/themeStore';
 
-const themes: { id: Theme; label: string; icon: string }[] = [
-  { id: 'dark', label: 'Dark', icon: '🌙' },
-  { id: 'light', label: 'Light', icon: '☀️' },
-  { id: 'gold', label: 'Gold', icon: '✨' },
+interface ThemeOption {
+  id: Theme;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const icon = (paths: React.ReactNode) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    {paths}
+  </svg>
+);
+
+const themes: ThemeOption[] = [
+  { id: 'dark', label: 'Dark', icon: icon(<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />) },
+  {
+    id: 'light',
+    label: 'Light',
+    icon: icon(
+      <>
+        <circle cx="12" cy="12" r="4.5" />
+        <path d="M12 1.5v2M12 20.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1.5 12h2M20.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+      </>
+    ),
+  },
+  {
+    id: 'gold',
+    label: 'Gold',
+    icon: icon(<path d="M12 2l2.4 5.6 6.1.5-4.6 4 1.4 5.9L12 15l-5.3 3 1.4-5.9-4.6-4 6.1-.5L12 2z" />),
+  },
 ];
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useThemeStore();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const currentTheme = themes.find((t) => t.id === theme) || themes[0];
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all hover:bg-white/[0.05]"
-        style={{ color: 'var(--color-text-muted)' }}
-      >
-        <span className="text-sm">{currentTheme.icon}</span>
-        <span className="text-xs font-medium hidden sm:inline">{currentTheme.label}</span>
-      </button>
-
-      {isOpen && (
-        <div
-          className="absolute right-0 top-full mt-1 py-1 rounded-lg shadow-xl min-w-[120px] z-50 animate-scale-in"
-          style={{
-            backgroundColor: 'var(--color-card)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          {themes.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                setTheme(t.id);
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left transition-all hover:bg-white/[0.05]"
-              style={{
-                color: theme === t.id ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              }}
-            >
-              <span className="text-sm">{t.icon}</span>
-              <span className="text-xs font-medium">{t.label}</span>
-              {theme === t.id && (
-                <span className="ml-auto text-[10px]">✓</span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+    <div
+      className="flex items-center gap-0.5 rounded-xl p-1"
+      style={{ backgroundColor: 'var(--input-bg)' }}
+      role="radiogroup"
+      aria-label="Color theme"
+    >
+      {themes.map((t) => {
+        const active = theme === t.id;
+        return (
+          <button
+            key={t.id}
+            role="radio"
+            aria-checked={active}
+            aria-label={`${t.label} theme`}
+            title={`${t.label} theme`}
+            onClick={() => setTheme(t.id)}
+            className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11.5px] font-semibold transition-all duration-150"
+            style={{
+              backgroundColor: active ? 'var(--card)' : 'transparent',
+              color: active ? 'var(--primary)' : 'var(--text-subtle)',
+              boxShadow: active ? 'var(--shadow-sm)' : 'none',
+            }}
+          >
+            {t.icon}
+            <span className="hidden lg:inline">{t.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

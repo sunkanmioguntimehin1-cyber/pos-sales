@@ -54,7 +54,7 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
         <>
           <button
             onClick={handleClose}
-            className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+            className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
           >
             Cancel
           </button>
@@ -73,21 +73,21 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
           <IconUser size={18} />
         </div>
         <div>
-          <div className="text-[13px] font-semibold text-slate-100">Quick Add Customer</div>
-          <div className="text-[11px] text-slate-400">Add a customer for this sale</div>
+          <div className="text-[13px] font-semibold text-[var(--text)]">Quick Add Customer</div>
+          <div className="text-[11px] text-muted">Add a customer for this sale</div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
             Full Name *
           </label>
           <input
             {...register('name', { required: 'Name is required' })}
             type="text"
-            className={`w-full h-9 px-3 bg-[#1E2535] border rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none transition-all ${
-              errors.name ? 'border-red-500 focus:border-red-500' : 'border-white/[0.12] focus:border-blue-500'
+            className={`w-full h-9 px-3 bg-[var(--surface-2)] border rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none transition-all ${
+              errors.name ? 'border-red-500 focus:border-red-500' : 'border-[var(--border-strong)] focus:border-blue-500'
             }`}
             placeholder="Enter customer name"
           />
@@ -95,14 +95,14 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
             Phone Number *
           </label>
           <input
             {...register('phone', { required: 'Phone is required' })}
             type="tel"
-            className={`w-full h-9 px-3 bg-[#1E2535] border rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none transition-all ${
-              errors.phone ? 'border-red-500 focus:border-red-500' : 'border-white/[0.12] focus:border-blue-500'
+            className={`w-full h-9 px-3 bg-[var(--surface-2)] border rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none transition-all ${
+              errors.phone ? 'border-red-500 focus:border-red-500' : 'border-[var(--border-strong)] focus:border-blue-500'
             }`}
             placeholder="+31 6 1234 5678"
           />
@@ -110,13 +110,13 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
             Email Address
           </label>
           <input
             {...register('email')}
             type="email"
-            className="w-full h-9 px-3 bg-[#1E2535] border border-white/[0.12] rounded-lg text-slate-100 text-[13px] placeholder:text-slate-500 outline-none focus:border-blue-500 transition-all"
+            className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all"
             placeholder="customer@email.com (optional)"
           />
         </div>

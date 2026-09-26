@@ -51,7 +51,7 @@ export function StaffSelectionModal({ isOpen, onClose, onSelect, staffList }: St
         <>
           <button
             onClick={handleClose}
-            className="h-9 px-4 bg-[#1E2535] border border-white/[0.12] text-slate-400 hover:text-slate-200 rounded-lg text-[13px] font-semibold transition-all"
+            className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
           >
             Cancel
           </button>
@@ -71,35 +71,35 @@ export function StaffSelectionModal({ isOpen, onClose, onSelect, staffList }: St
             <IconUser size={18} />
           </div>
           <div>
-            <div className="text-[13px] font-semibold text-slate-100">Staff Verification</div>
-            <div className="text-[11px] text-slate-400">Select the staff member completing this sale</div>
+            <div className="text-[13px] font-semibold text-[var(--text)]">Staff Verification</div>
+            <div className="text-[11px] text-muted">Select the staff member completing this sale</div>
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
             Select Staff Member
           </label>
-          <div className="bg-[#1E2535] border border-white/[0.12] rounded-lg overflow-hidden">
+          <div className="bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg overflow-hidden">
             {activeStaff.length === 0 ? (
-              <div className="p-4 text-center text-[13px] text-slate-500">No active staff members found</div>
+              <div className="p-4 text-center text-[13px] text-subtle">No active staff members found</div>
             ) : (
               activeStaff.map(staff => (
                 <button
                   key={staff.id}
                   onClick={() => setSelectedStaff(staff)}
-                  className={`w-full px-4 py-3 flex items-center gap-3 border-b border-white/[0.07] last:border-0 transition-colors ${
+                  className={`w-full px-4 py-3 flex items-center gap-3 border-b border-[var(--border)] last:border-0 transition-colors ${
                     selectedStaff?.id === staff.id
                       ? 'bg-blue-500/15 border-blue-500/30'
-                      : 'hover:bg-white/[0.02]'
+                      : 'hover:bg-[var(--input-bg)]'
                   }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0">
                     {staff.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-[13px] font-semibold text-slate-100">{staff.name}</div>
-                    <div className="text-[11px] text-slate-500">{staff.email}</div>
+                    <div className="text-[13px] font-semibold text-[var(--text)]">{staff.name}</div>
+                    <div className="text-[11px] text-subtle">{staff.email}</div>
                   </div>
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColors[staff.role]}`}>
                     {roleLabels[staff.role]}
