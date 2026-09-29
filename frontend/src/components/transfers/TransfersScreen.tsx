@@ -6,9 +6,11 @@ import {
 } from '@/components/ui/Icons';
 import { Modal } from '@/components/ui/Modal';
 import {
-  useBranches, useProducts, useTransfers, useCreateTransfer, useStaff, useActiveBranch,
+  useBranches, useProducts, useTransfers, useCreateTransfer, useCreateBranch, useStaff, useActiveBranch,
   getTransferFromName, getTransferToName, getTransferStaffName,
 } from '@/lib/hooks';
+import { AddBranchModal } from '@/components/branches/AddBranchModal';
+import { BranchFormData } from '@/components/branches/types';
 
 interface DraftLine {
   productId: string;
@@ -31,7 +33,9 @@ export function TransfersScreen() {
   const createTransfer = useCreateTransfer();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const createBranch = useCreateBranch();
 
   const [fromBranchId, setFromBranchId] = useState('');
   const [toBranchId, setToBranchId] = useState('');
@@ -154,9 +158,20 @@ export function TransfersScreen() {
       </div>
 
       {branches.length < 2 && (
-        <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12px] text-amber-400">
-          <IconAlertTriangle size={14} />
-          Transfers need at least two locations. Add a branch to start moving stock.
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12px] text-amber-400">
+          <IconAlertTriangle size={14} className="flex-shrink-0" />
+          <span className="flex-1 min-w-[220px]">
+            A transfer needs somewhere to move stock <em>to</em>. Every new product
+            is received at the head office, so add your first branch to start
+            sending it out.
+          </span>
+          <button
+            onClick={() => setIsAddBranchOpen(true)}
+            className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-[12px] font-semibold text-white transition-all"
+            style={{ background: 'var(--primary)' }}
+          >
+            <IconPlus size={13} /> Add Branch
+          </button>
         </div>
       )}
 
@@ -383,6 +398,27 @@ export function TransfersScreen() {
           </div>
         </div>
       </Modal>
+
+      {/* Creating a branch here rather than sending the user off to another
+          screen: the whole reason they landed on Transfers is that they need
+          a second location, so making them navigate away to get one is the
+          same dead end in a different window. */}
+      <AddBranchModal
+        isOpen={isAddBranchOpen}
+        onClose={() => setIsAddBranchOpen(false)}
+        onAdd={(data: BranchFormData) => {
+          createBranch.mutate(
+            {
+              name: data.name,
+              address: data.address,
+              phone: data.phone,
+              status: data.status,
+              manager: data.manager,
+            },
+            { onSuccess: () => setIsAddBranchOpen(false) }
+          );
+        }}
+      />
     </div>
   );
 }

@@ -18,6 +18,11 @@ interface InventoryTableProps {
    * in the wrong place.
    */
   adjustDisabledReason?: string;
+  /**
+   * False when no single location is selected, in which case the company total
+   * is already the On Hand figure and a second column would just repeat it.
+   */
+  showTotal?: boolean;
 }
 
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
@@ -32,7 +37,7 @@ const stockBadge = (s: string) => {
   return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400">Out</span>;
 };
 
-export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock, onViewHistory, onPrint, onHandLabel = 'On Hand', adjustDisabledReason }: InventoryTableProps) {
+export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock, onViewHistory, onPrint, onHandLabel = 'On Hand', adjustDisabledReason, showTotal = true }: InventoryTableProps) {
   const [tab, setTab] = useState<'stock' | 'logs'>('stock');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
@@ -106,7 +111,13 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
       </div>
 
       {tab === 'stock' ? (
-        <StockTable items={filtered} onViewHistory={onViewHistory} onPrint={onPrint} onHandLabel={onHandLabel} />
+        <StockTable
+          items={filtered}
+          onViewHistory={onViewHistory}
+          onPrint={onPrint}
+          onHandLabel={onHandLabel}
+          showTotal={showTotal}
+        />
       ) : (
         <LogsTable logs={logs} />
       )}
@@ -135,18 +146,29 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
   );
 }
 
-function StockTable({ items, onViewHistory, onPrint, onHandLabel }: {
+function StockTable({ items, onViewHistory, onPrint, onHandLabel, showTotal }: {
   items: InventoryItem[];
   onViewHistory: (item: InventoryItem) => void;
   onPrint: (item: InventoryItem) => void;
   onHandLabel: string;
+  showTotal: boolean;
 }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            {['Product', 'Code', onHandLabel, 'Total', 'Reserved', 'Available', 'Reorder Pt.', 'Status', 'Actions'].map(h => (
+            {[
+              'Product',
+              'Code',
+              onHandLabel,
+              ...(showTotal ? ['Total'] : []),
+              'Reserved',
+              'Available',
+              'Reorder Pt.',
+              'Status',
+              'Actions',
+            ].map(h => (
               <th key={h} className="px-3.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                 {h}
               </th>
@@ -164,7 +186,9 @@ function StockTable({ items, onViewHistory, onPrint, onHandLabel }: {
                 <span className="font-mono text-[11px] text-subtle">{item.productCode}</span>
               </td>
               <td className={`px-3.5 py-3 border-b border-[var(--border)] font-extrabold tabular-nums ${stockColorCls(item.status)}`}>{item.onHand}</td>
-              <td className="px-3.5 py-3 border-b border-[var(--border)] text-muted font-semibold tabular-nums text-xs">{item.totalStock}</td>
+              {showTotal && (
+                <td className="px-3.5 py-3 border-b border-[var(--border)] text-muted font-semibold tabular-nums text-xs">{item.totalStock}</td>
+              )}
               <td className="px-3.5 py-3 border-b border-[var(--border)] text-subtle tabular-nums text-xs">{item.reserved}</td>
               <td className={`px-3.5 py-3 border-b border-[var(--border)] font-extrabold tabular-nums ${stockColorCls(item.status)}`}>{item.available}</td>
               <td className="px-3.5 py-3 border-b border-[var(--border)] text-subtle tabular-nums text-xs">{item.reorder}</td>

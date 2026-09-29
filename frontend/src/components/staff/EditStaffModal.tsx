@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { StaffForm } from './StaffForm';
@@ -15,9 +16,18 @@ export function EditStaffModal({ isOpen, onClose, onEdit, staff }: EditStaffModa
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<StaffFormData>({
-    defaultValues: staff ? {
+    defaultValues: emptyStaffFormData,
+  });
+
+  // `defaultValues` is only read on mount, and this modal stays mounted across
+  // opens — so without an explicit reset the second person you edit would show
+  // the first one's details.
+  useEffect(() => {
+    if (!isOpen || !staff) return;
+    reset({
       name: staff.name,
       email: staff.email,
       role: staff.role,
@@ -25,17 +35,21 @@ export function EditStaffModal({ isOpen, onClose, onEdit, staff }: EditStaffModa
       password: '',
       pin: '',
       status: staff.status,
-    } : emptyStaffFormData,
-  });
+      // A staff record with no branch (not yet backfilled) must show the head
+      // office rather than an empty select, which would read as "not chosen".
+      branchId: staff.branchId ?? '',
+    });
+  }, [isOpen, staff, reset]);
 
   const onFormSubmit = (data: StaffFormData) => {
     if (staff) {
       onEdit(staff.id, data);
     }
-    onClose();
+    handleClose();
   };
 
   const handleClose = () => {
+    reset(emptyStaffFormData);
     onClose();
   };
 

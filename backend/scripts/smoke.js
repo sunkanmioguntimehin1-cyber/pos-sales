@@ -169,8 +169,38 @@ async function main() {
   });
   check('adjustment applied at the named location', adjust.body.product?.stock === 30, adjust.body.product);
 
-  // --- cleanup -------------------------------------------------------------
+  // --- staff are bound to a location ---------------------------------------
+  // The POS only lists staff who work at the selected branch, so an
+  // unassigned cashier would be unable to ring up a sale anywhere.
+  const cashier = await api('/api/staff', {
+    method: 'POST', token,
+    body: { name: 'Mall Cashier', role: 'cashier', phone: '0244000000', pin: '1234' },
+  });
+  check('new staff lands at the head office by default', cashier.body.staff?.branchName === 'Head Office', cashier.body);
+
+  const moved = await api(`/api/staff/${cashier.body.staff.id}`, {
+    method: 'PUT', token, body: { branchId: outlet.id },
+  });
+  check('staff can be moved to another branch', moved.body.staff?.branchName === outlet.name, moved.body);
+
+  const atOutlet = await api(`/api/staff?branchId=${outlet.id}`, { token });
+  const atOutletNames = (atOutlet.body.staff || []).map((s) => s.name);
+  check('outlet roster includes its cashier and the admin',
+    atOutletNames.includes('Mall Cashier') && atOutletNames.includes('Admin'),
+    atOutletNames);
+
+  // --- deleting a location is only safe once it is empty --------------------
+  const heldBlock = await api(`/api/branches/${outlet.id}`, { method: 'DELETE', token });
+  check('a branch holding stock cannot be deleted', heldBlock.status === 409, heldBlock.body);
+
+  await api(`/api/staff/${cashier.body.staff.id}`, {
+    method: 'PUT', token, body: { branchId: headOffice.id },
+  });
   await api(`/api/products/${product.id}`, { method: 'DELETE', token });
+  const emptyBlock = await api(`/api/branches/${outlet.id}`, { method: 'DELETE', token });
+  check('an emptied branch can then be deleted', emptyBlock.status === 200, emptyBlock.body);
+
+  // --- cleanup -------------------------------------------------------------
   const gone = await api(`/api/products/${product.id}/stock`, { token });
   check('deleting a product clears its stock rows', gone.status === 404 || gone.body.stockLevels?.length === 0);
 

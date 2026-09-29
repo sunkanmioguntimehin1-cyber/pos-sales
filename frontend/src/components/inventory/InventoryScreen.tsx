@@ -8,17 +8,24 @@ import { AddInventoryModal } from './AddInventoryModal';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { StockHistoryPanel } from './StockHistoryPanel';
 import { useProducts, useAdjustStock, useCreateProduct, useBranches, getProductCategoryName } from '@/lib/hooks';
-
-const ALL_LOCATIONS = 'all';
+// A `<select>` needs a value, so "no location" is a sentinel rather than ''.
+import { ALL_LOCATIONS_SENTINEL as ALL_LOCATIONS, toBranchQueryId } from '@/lib/utils/branchQuery';
 
 export function InventoryScreen() {
   const { data: branches = [] } = useBranches();
-  // Empty means "company-wide totals". A specific id scopes `stock` to that
-  // location, which is also what an adjustment from this screen would hit.
   const [locationId, setLocationId] = useState<string>(ALL_LOCATIONS);
   const selectedBranch = branches.find((b) => b.id === locationId);
 
-  const { data: products = [], isLoading } = useProducts({ branchId: locationId || undefined });
+  /**
+   * `ALL_LOCATIONS` is a UI sentinel, not a branch id, and must never reach the
+   * API — the backend would try to cast it to an ObjectId and reject the
+   * request. Omitting `branchId` is what asks for company-wide totals.
+   */
+  const branchId = toBranchQueryId(locationId);
+
+  // `branchId` scopes `stock` to one location, which is also the location an
+  // adjustment from this screen would hit.
+  const { data: products = [], isLoading } = useProducts({ branchId });
   const adjustStock = useAdjustStock();
   const createProduct = useCreateProduct();
 
@@ -181,6 +188,7 @@ export function InventoryScreen() {
         onViewHistory={handleViewHistory}
         onPrint={handlePrint}
         onHandLabel={onHandLabel}
+        showTotal={!!selectedBranch}
         adjustDisabledReason={
           selectedBranch ? undefined : 'Select a single location to adjust its stock'
         }

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { IconPlus, IconSearch, IconEdit, IconEye, IconTrash } from '@/components/ui/Icons';
+import { IconPlus, IconSearch, IconEdit, IconEye, IconTrash, IconStore } from '@/components/ui/Icons';
 import { StaffFormData } from './types';
 import { AddStaffModal } from './AddStaffModal';
 import { EditStaffModal } from './EditStaffModal';
@@ -68,6 +68,9 @@ export function StaffScreen() {
       pin: data.pin || undefined,
       role: data.role,
       status: data.status,
+      // An empty select means "not chosen", which the backend reads as the
+      // head office — the same place every other unassigned record lands.
+      branchId: data.branchId || undefined,
     });
   };
 
@@ -83,6 +86,9 @@ export function StaffScreen() {
         ...(data.pin ? { pin: data.pin } : {}),
         role: data.role,
         status: data.status,
+        // Always sent, even when empty: this is how someone is moved back to
+        // the head office, so omitting it would freeze their current branch.
+        branchId: data.branchId || '',
       },
     });
   };
@@ -147,13 +153,13 @@ export function StaffScreen() {
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="p-4">
-              <SkeletonTable rows={5} cols={5} />
+              <SkeletonTable rows={5} cols={7} />
             </div>
           ) : (
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  {['Staff Member', 'Email', 'Role', 'Phone', 'Status', 'Actions'].map(h => (
+                  {['Staff Member', 'Email', 'Role', 'Location', 'Phone', 'Status', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                       {h}
                     </th>
@@ -175,6 +181,15 @@ export function StaffScreen() {
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColors[member.role]}`}>
                         {roleLabels[member.role]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 border-b border-[var(--border)]">
+                      {/* A blank branch means a record that predates branch
+                          assignment and has not been backfilled since — shown
+                          as such rather than guessing a location. */}
+                      <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
+                        <IconStore size={12} className="text-subtle" />
+                        {member.branchName ?? 'Unassigned'}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted">{member.phone || '-'}</td>

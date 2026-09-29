@@ -1,5 +1,6 @@
 'use client';
 import { Controller, UseFormReturn } from 'react-hook-form';
+import { useBranches } from '@/lib/hooks';
 import { StaffFormData } from './types';
 
 interface StaffFormProps {
@@ -14,6 +15,10 @@ const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-sub
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 
 export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
+  // Only needed for the location dropdown. The backend guarantees a head
+  // office exists, so the list is never empty once it loads.
+  const { data: branches = [], isLoading: isLoadingBranches } = useBranches();
+
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -73,6 +78,33 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
               <option value="manager">Manager</option>
               <option value="cashier">Cashier</option>
             </select>
+          )}
+        />
+      </div>
+
+      <div>
+        <label className={labelCls}>Works At</label>
+        <Controller
+          name="branchId"
+          control={control}
+          render={({ field }) => (
+            <>
+              <select {...field} value={field.value ?? ''} className={selectCls} disabled={isLoadingBranches}>
+                {/* The head office is always the fallback, matching what the
+                    backend files someone at when no branch is named. */}
+                <option value="">Head Office (default)</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}{branch.type === 'head_office' ? ' (HQ)' : ''}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11px] text-subtle mt-1 block">
+                {field.value
+                  ? 'This person can only ring up sales at this location.'
+                  : 'This person will be filed at the head office. Admins can work at any location.'}
+              </span>
+            </>
           )}
         />
       </div>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { transfersApi, CreateTransferData } from '@/lib/api';
+import { toBranchQueryId } from '@/lib/utils/branchQuery';
 
 export type { StockTransfer, CreateTransferData } from '@/lib/api/transfers';
 export {
@@ -10,9 +11,17 @@ export {
 const TRANSFERS = ['transfers'] as const;
 
 export function useTransfers(filters?: { branchId?: string; startDate?: string; endDate?: string }) {
+  /**
+   * A UI sentinel like "all" must not reach the API — the backend would try to
+   * cast it to an ObjectId and reject the request. Sanitised before it reaches
+   * the query, and the same object feeds the cache key so the two cannot drift.
+   * No memo needed: TanStack hashes the key, so a fresh object is harmless.
+   */
+  const params = { ...filters, branchId: toBranchQueryId(filters?.branchId) };
+
   return useQuery({
-    queryKey: ['transfers', filters],
-    queryFn: () => transfersApi.getAll(filters),
+    queryKey: ['transfers', params],
+    queryFn: () => transfersApi.getAll(params),
     staleTime: 30 * 1000,
   });
 }

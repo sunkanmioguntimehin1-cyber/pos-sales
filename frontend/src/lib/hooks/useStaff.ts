@@ -2,15 +2,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { staffApi, Staff, CreateStaffData, UpdateStaffData } from '@/lib/api';
 import { snapshotLists, patchLists, restoreLists } from './optimistic';
+import { toBranchQueryId } from '@/lib/utils/branchQuery';
 
 export type { Staff } from '@/lib/api/staff';
 
 const STAFF = ['staff'] as const;
 
-export function useStaff(filters?: { role?: string; status?: string; search?: string }) {
+export function useStaff(filters?: { role?: string; status?: string; search?: string; branchId?: string }) {
+  // The sentinel must not reach the API — the backend would try to cast it to
+  // an ObjectId. Note the query key keeps the raw filters so a caller's cached
+  // entry is keyed on exactly what it asked for.
+  const branchId = toBranchQueryId(filters?.branchId);
+
   return useQuery({
     queryKey: ['staff', filters],
-    queryFn: () => staffApi.getAll(filters),
+    queryFn: () => staffApi.getAll({ ...filters, branchId }),
     staleTime: 60 * 1000,
   });
 }
@@ -40,6 +46,9 @@ export function useCreateStaff() {
           id: `temp-${Date.now()}`,
           createdAt: new Date().toISOString(),
           status: newStaff.status || 'active',
+          // An empty selection means head office, so the placeholder row is
+          // honestly "unassigned" until the refetch resolves the real branch.
+          branchId: newStaff.branchId || null,
         } as Staff,
       ]);
 

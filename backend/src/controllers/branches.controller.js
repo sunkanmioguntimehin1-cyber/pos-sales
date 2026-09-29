@@ -1,4 +1,6 @@
 import { Branch } from '../models/branch.model.js';
+import { Stock } from '../models/stock.model.js';
+import { Staff } from '../models/staff.model.js';
 import { ensureHeadOffice } from '../services/stock.service.js';
 import { respondWithError } from '../utils/respondWithError.js';
 
@@ -129,6 +131,36 @@ export async function deleteBranch(req, res) {
     // in, and would orphan every Stock row pointing at it.
     if (branch.type === 'head_office' || branch.isDefault) {
       res.status(400).json({ error: 'Cannot delete the head office' });
+      return;
+    }
+
+    // Deleting a branch that still holds stock used to orphan its Stock rows.
+    // Nothing could then reach those units — no POS, transfer or adjustment
+    // can name a branch that no longer exists — while `syncProductStockTotal`
+    // kept summing them, so the quantity leaked out of every location view and
+    // stayed in the company total forever. Likewise, staff assigned here would
+    // be left pointing at nothing and would vanish from every till.
+    const [heldStock, assignedStaff] = await Promise.all([
+      Stock.countDocuments({ branchId: branch._id }),
+      Staff.countDocuments({ branchId: branch._id }),
+    ]);
+
+    if (heldStock > 0 || assignedStaff > 0) {
+      const blockers = [];
+      if (heldStock > 0) {
+        blockers.push(
+          `stock in ${heldStock} product${heldStock === 1 ? '' : 's'}`
+        );
+      }
+      if (assignedStaff > 0) {
+        blockers.push(
+          `${assignedStaff} staff member${assignedStaff === 1 ? '' : 's'} assigned`
+        );
+      }
+
+      res.status(409).json({
+        error: `${branch.name} still has ${blockers.join(' and ')}. Transfer the stock away and reassign the staff first.`,
+      });
       return;
     }
 

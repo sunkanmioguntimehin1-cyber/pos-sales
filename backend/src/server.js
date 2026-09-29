@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { connectDB, disconnectDB } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import { seedAdmin } from './seed.js';
-import { ensureHeadOffice, backfillHeadOfficeStock } from './services/stock.service.js';
+import { ensureHeadOffice, backfillHeadOfficeStock, backfillStaffBranch } from './services/stock.service.js';
 import storeRoutes from './routes/store.routes.js';
 import staffRoutes from './routes/staff.routes.js';
 import productsRoutes from './routes/products.routes.js';
@@ -87,6 +87,14 @@ async function startServer() {
   console.log(`Head office: ${headOffice.name} (${headOffice._id})`);
   if (seeded > 0) {
     console.log(`Seeded head office stock for ${seeded} product(s)`);
+  }
+
+  // Staff predating branch assignment have no location, and the POS only lists
+  // staff who work at the selected location — so they must be filed at the
+  // head office or they would never appear on any till.
+  const staffFiled = await backfillStaffBranch();
+  if (staffFiled > 0) {
+    console.log(`Assigned ${staffFiled} staff member(s) to the head office`);
   }
 
   const server = app.listen(PORT, () => {

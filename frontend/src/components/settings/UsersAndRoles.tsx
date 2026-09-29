@@ -53,6 +53,7 @@ export function UsersAndRoles({ staff, onUpdate }: UsersAndRolesProps) {
       role: formData.role,
       phone: formData.phone,
       status: formData.status,
+      branchId: null,
     };
     onUpdate([...staff, newStaff]);
     resetForm();

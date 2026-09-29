@@ -63,7 +63,15 @@ export function POSTerminalScreen() {
   });
   const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
   const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
-  const { data: staffList = [], isLoading: isLoadingStaff } = useStaff({ status: 'active' });
+  // Only staff who work at the till's location (plus admins, who the backend
+  // always includes). Without this, a cashier based at another branch could
+  // ring up a sale here, and their orders would be attributed to the wrong
+  // stock. `branchId` is sanitised inside the hook, so the "All Locations"
+  // selection falls back to everyone.
+  const { data: staffList = [], isLoading: isLoadingStaff } = useStaff({
+    status: 'active',
+    branchId: activeBranch?.id,
+  });
   const { data: store } = useStore();
   const createOrder = useCreateOrder();
   const createCustomer = useCreateCustomer();

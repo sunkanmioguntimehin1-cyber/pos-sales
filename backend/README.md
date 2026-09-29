@@ -145,6 +145,29 @@ Because stock is per location, a sale draws from **the branch it was rung up at*
 `locationId` it came off. Cancelling or refunding returns the goods to that same
 location exactly once.
 
+### Staff and locations
+
+Each staff member has a `branchId` — the location they work at. It is not
+optional in the UI and not nullable in practice, but is left out of the schema as
+`required` so an install upgraded from before branch assignment can boot; see
+below.
+
+- **Omitting `branchId` on create files the person at the head office**, the same
+  place new stock is received. A branch id that does not exist is a `400` rather
+  than a silent fallback, so nobody ends up at a store they did not choose.
+- **The POS lists only the selected location's staff.** `GET /api/staff?branchId=X`
+  returns everyone assigned to `X` **plus all admins** — admins are not
+  location-bound, so excluding them would leave a till with nobody able to ring up
+  a sale whenever its cashier is away.
+- `backfillStaffBranch()` runs on every boot and gives any staff record with no
+  location the head office, so pre-branch records still appear on a till. It only
+  touches records where `branchId` is missing, so it never moves anyone who has
+  already been assigned.
+- **A branch can only be deleted once it is empty.** `DELETE /api/branches/:id`
+  returns `409` while the branch still holds stock or has staff assigned, naming
+  both. Deleting a non-empty branch used to orphan its `Stock` rows: nothing
+  could reach those units again, yet the company-wide total kept counting them.
+
 > **No transactions.** The in-memory database is a single node with no replica
 > set, so multi-document operations (transfers, order rollback) use compensating
 > writes rather than `session.withTransaction()`. Transfers validate everything
@@ -177,12 +200,15 @@ location exactly once.
 
 | Method | Path              | Description |
 | ------ | ----------------- | ----------- |
-| GET    | `/`               | Filters: `role`, `status`, `search`. |
-| POST   | `/`               | `name`, `role` required; `email`, `phone`, `password`, `pin`, `status` optional. Password/PIN are bcrypt-hashed. |
+| GET    | `/`               | Filters: `role`, `status`, `search`, `branchId`. `branchId` narrows to that location plus admins; `branchId=all` returns everyone. |
+| POST   | `/`               | `name`, `role` required; `email`, `phone`, `password`, `pin`, `status`, `branchId` optional. Password/PIN are bcrypt-hashed. Omitted `branchId` means the head office. |
 | POST   | `/verify-pin`     | `{ staffId, pin }` → `{ success, staff }` |
 | GET    | `/:staffId`       | Single staff member (password/PIN hashes stripped). |
-| PUT    | `/:staffId`       | Partial update; send `password`/`pin` to change credentials. |
+| PUT    | `/:staffId`       | Partial update; send `password`/`pin` to change credentials. Send `branchId` to move someone; omit it to leave their location alone, or send `''` to send them back to the head office. |
 | DELETE | `/:staffId`       | |
+
+Every staff response carries `branchId`, plus `branchName`/`branchType` when the
+branch is populated.
 
 ### Products & categories — `/api/products`
 
@@ -241,7 +267,7 @@ dynamic route.
 | POST   | `/`           | `name` required; `address`, `phone`, `status` (`active`/`inactive`), `manager`. Always created as `type: 'branch'` — callers cannot mint a second head office. |
 | GET    | `/:branchId`  | |
 | PUT    | `/:branchId`  | Partial update. `type` and `isDefault` are not editable. |
-| DELETE | `/:branchId`  | Refused for the head office. |
+| DELETE | `/:branchId`  | Refused for the head office, and `409` while the branch still holds stock or has staff assigned. |
 
 `isDefault` (which location new stock is booked into) and `status`
 (active/inactive) are independent fields. The controller clears `isDefault` from

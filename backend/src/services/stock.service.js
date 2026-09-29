@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Stock } from '../models/stock.model.js';
 import { Product } from '../models/product.model.js';
 import { Branch } from '../models/branch.model.js';
+import { Staff } from '../models/staff.model.js';
 
 /**
  * Thrown when a decrement would take a location below zero. Distinct from a
@@ -238,4 +239,23 @@ export async function backfillHeadOfficeStock() {
   );
 
   return result.upsertedCount ?? 0;
+}
+
+/**
+ * Files every staff member who has no location at the head office.
+ *
+ * The upgrade path for installs that predate branch assignment: those staff
+ * records have no `branchId`, and without this they would match no POS at all
+ * once the cashier list is filtered by location. Idempotent — it only touches
+ * records where the field is genuinely missing, so it is safe on every boot.
+ */
+export async function backfillStaffBranch() {
+  const headOffice = await ensureHeadOffice();
+
+  const result = await Staff.updateMany(
+    { $or: [{ branchId: { $exists: false } }, { branchId: null }] },
+    { $set: { branchId: headOffice._id } }
+  );
+
+  return result.modifiedCount ?? 0;
 }
