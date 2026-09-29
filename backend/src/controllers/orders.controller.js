@@ -6,6 +6,7 @@ import { respondWithError } from '../utils/respondWithError.js';
 import {
   getHeadOfficeId, getLocationStock, adjustLocationStock, InsufficientStockError,
 } from '../services/stock.service.js';
+import { recordMovements } from '../services/stockLog.service.js';
 
 function generateOrderNumber() {
   const date = new Date();
@@ -176,6 +177,21 @@ export async function createOrder(req, res) {
       }
     }
 
+    // The stock was already deducted above (write pass) — this records it, so
+    // the Movement Log answers "where did those units go?" with a sale row.
+    await recordMovements(
+      items.map((item) => ({
+        productId: item.productId,
+        branchId: sourceBranchId,
+        type: 'sale',
+        quantity: -item.quantity,
+        source: 'order',
+        sourceId: order._id,
+        ref: order.orderNumber,
+        staffId: attributedStaffId,
+      }))
+    );
+
     await order.populate([
       { path: 'staffId', select: 'name' },
       { path: 'customerId', select: 'name' },
@@ -251,6 +267,25 @@ export async function updateOrderStatus(req, res) {
 
     if (RESTOCKING_STATUSES.has(status) && !RESTOCKING_STATUSES.has(previousStatus)) {
       await restoreItemsToLocation(order.items, order.branchId?._id || order.branchId);
+
+      // The units are back on the shelf; log the return so the Movement Log
+      // stays a complete ledger rather than a one-sided story.
+      const fallbackBranch = order.branchId?._id || order.branchId;
+      await recordMovements(
+        order.items
+          .map((item) => ({
+            productId: item.productId,
+            branchId: item.locationId || fallbackBranch,
+            type: 'receive',
+            quantity: item.quantity,
+            source: 'order',
+            sourceId: order._id,
+            ref: order.orderNumber,
+            note: `Restocked from ${previousStatus.toLowerCase()} order`,
+            staffId: req.user?.userId,
+          }))
+          .filter((entry) => entry.branchId)
+      );
 
       // A refunded sale is not revenue and not a visit. Left uncorrected the
       // customer keeps their inflated spend total, and their tier goes with it.

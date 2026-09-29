@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js';
 import { seedAdmin } from './seed.js';
 import { ensureRoles } from './services/role.service.js';
 import { ensureHeadOffice, backfillHeadOfficeStock, backfillStaffBranch, backfillBranchTargets } from './services/stock.service.js';
+import { backfillTransferLogs } from './services/stockLog.service.js';
 import storeRoutes from './routes/store.routes.js';
 import staffRoutes from './routes/staff.routes.js';
 import rolesRoutes from './routes/roles.routes.js';
@@ -115,6 +116,14 @@ async function startServer() {
   const targetsSet = await backfillBranchTargets();
   if (targetsSet > 0) {
     console.log(`Set default stock targets for ${targetsSet} location row(s)`);
+  }
+
+  // Replay transfers recorded before the Movement Log existed so that history
+  // is complete from day one of the feature. Idempotent: transfers already
+  // logged are skipped, so this is a no-op on every later boot.
+  const movementsBackfilled = await backfillTransferLogs();
+  if (movementsBackfilled > 0) {
+    console.log(`Backfilled ${movementsBackfilled} transfer movement(s) into the log`);
   }
 
   const server = app.listen(PORT, () => {

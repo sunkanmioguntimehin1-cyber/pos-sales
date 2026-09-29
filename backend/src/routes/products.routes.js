@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { 
   getProducts, getProduct, createProduct, updateProduct, deleteProduct, adjustStock,
-  getProductStock, setProductStockTarget,
+  getProductStock, setProductStockTarget, getMovements,
   getCategories, createCategory, updateCategory, deleteCategory 
 } from '../controllers/products.controller.js';
 import { authMiddleware, requirePermission } from '../middleware/auth.middleware.js';
@@ -19,6 +19,9 @@ router.delete('/categories/:categoryId', requirePermission('products:manage'), d
 
 router.get('/', requirePermission('products:view'), getProducts);
 router.post('/', requirePermission('products:manage'), createProduct);
+// `/movements` is the Movement Log feed and must be matched before the
+// `/:productId/...` patterns below, or "movements" would be cast to an id.
+router.get('/movements', requirePermission('stock:view'), getMovements);
 // Same ordering trap as `/categories` above: literal segments have to be
 // matched before the `/:productId/...` patterns.
 router.get('/:productId/stock', requirePermission('stock:view'), getProductStock);

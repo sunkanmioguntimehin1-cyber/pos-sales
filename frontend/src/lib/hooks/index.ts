@@ -18,3 +18,4 @@ export {
   useTransfers, useCreateTransfer, type StockTransfer,
   getTransferFromName, getTransferToName, getTransferStaffName, getTransferCounterparty,
 } from './useTransfers';
+export { useStockMovements, MOVEMENTS_KEY, type StockMovement, type StockMovementType } from './useStockMovements';

@@ -18,14 +18,22 @@ export interface InventoryItem {
   status: 'ok' | 'low' | 'critical' | 'out';
 }
 
+export type StockLogType = 'sale' | 'receive' | 'damage' | 'correction' | 'transfer';
+
 export interface StockLog {
   id: string;
   time: string;
-  type: 'sale' | 'receive' | 'adjust';
+  type: StockLogType;
   product: string;
+  /** Signed: positive units entered the location, negative left it. */
   qty: number;
+  /** Source handle shown in the UI: an order number, a transfer ref, etc. */
   ref: string;
   user: string;
+  /** Only set on transfer rows, e.g. "Head Office" / "Accra Mall". */
+  fromBranch?: string;
+  toBranch?: string;
+  note?: string;
 }
 
 export type StockAdjustmentType = 'receive' | 'damage' | 'correction' | 'transfer';

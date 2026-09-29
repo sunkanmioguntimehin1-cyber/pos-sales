@@ -22,3 +22,6 @@ export {
   getTransferFromName, getTransferToName, getTransferStaffName, getTransferCounterparty,
 } from './transfers';
 export { storeApi, type Store, type UpdateStoreData, type PaymentMethodConfig } from './store';
+export {
+  stockMovementsApi, type StockMovement, type StockMovementType, type StockMovementFilters,
+} from './stockMovements';

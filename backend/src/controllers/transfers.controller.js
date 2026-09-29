@@ -5,6 +5,7 @@ import { respondWithError } from '../utils/respondWithError.js';
 import {
   transferStock, getLocationStock, InsufficientStockError,
 } from '../services/stock.service.js';
+import { recordMovements, transferRef } from '../services/stockLog.service.js';
 
 /**
  * Collapses duplicate lines for the same product into one.
@@ -202,6 +203,40 @@ export async function createTransfer(req, res) {
       staffId: staffId || req.user?.userId,
       notes,
     });
+
+    // A transfer touches two shelves, so the log gets one row per direction —
+    // both share the transfer ref so the UI can pair "HQ → Accra Mall" queries.
+    const ref = transferRef(transfer._id);
+    await recordMovements(
+      lines.flatMap((line) => [
+        {
+          productId: line.productId,
+          branchId: fromBranchId,
+          type: 'transfer',
+          quantity: -line.quantity,
+          source: 'transfer',
+          sourceId: transfer._id,
+          fromBranchId,
+          toBranchId,
+          ref,
+          note: notes,
+          staffId: transfer.staffId,
+        },
+        {
+          productId: line.productId,
+          branchId: toBranchId,
+          type: 'transfer',
+          quantity: line.quantity,
+          source: 'transfer',
+          sourceId: transfer._id,
+          fromBranchId,
+          toBranchId,
+          ref,
+          note: notes,
+          staffId: transfer.staffId,
+        },
+      ])
+    );
 
     await transfer.populate([
       { path: 'fromBranchId', select: 'name type' },

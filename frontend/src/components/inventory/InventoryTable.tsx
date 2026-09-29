@@ -28,8 +28,8 @@ interface InventoryTableProps {
 
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 
-const logIcon = (t: string) => t === 'sale' ? '🛍️' : t === 'receive' ? '📦' : '🔧';
-const logColorCls = (t: string) => t === 'sale' ? 'text-red-400 bg-red-500/10' : t === 'receive' ? 'text-emerald-400 bg-emerald-500/10' : 'text-amber-400 bg-amber-500/10';
+const logIcon = (t: string) => t === 'sale' ? '🛍️' : t === 'receive' ? '📦' : t === 'damage' ? '⚠️' : t === 'transfer' ? '↔️' : '🔧';
+const logColorCls = (t: string) => t === 'sale' ? 'text-red-400 bg-red-500/10' : t === 'receive' ? 'text-emerald-400 bg-emerald-500/10' : t === 'damage' ? 'text-red-400 bg-red-500/10' : t === 'transfer' ? 'text-blue-400 bg-blue-500/10' : 'text-amber-400 bg-amber-500/10';
 const stockColorCls = (s: string) => s === 'ok' ? 'text-[var(--text)]' : s === 'low' ? 'text-amber-400' : 'text-red-400';
 const stockBadge = (s: string) => {
   if (s === 'ok')       return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400">In Stock</span>;
@@ -228,6 +228,14 @@ function StockTable({ items, onViewHistory, onPrint, onHandLabel, showTotal }: {
 }
 
 function LogsTable({ logs }: { logs: StockLog[] }) {
+  if (logs.length === 0) {
+    return (
+      <div className="text-center py-12 text-subtle text-[13px]">
+        No stock movements logged yet.
+      </div>
+    );
+  }
+
   return (
     <div>
       {logs.map((log, i) => (
@@ -237,7 +245,9 @@ function LogsTable({ logs }: { logs: StockLog[] }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-[var(--text)]">{log.product}</div>
-            <div className="text-[11px] text-subtle mt-px">{log.ref} · {log.user}</div>
+            <div className="text-[11px] text-subtle mt-px">
+              {log.fromBranch && log.toBranch ? `${log.fromBranch} → ${log.toBranch} · ` : ''}{log.ref} · {log.user}
+            </div>
           </div>
           <div className="text-right">
             <div className={`text-sm font-extrabold tabular-nums ${log.qty > 0 ? 'text-emerald-400' : 'text-red-400'}`}>

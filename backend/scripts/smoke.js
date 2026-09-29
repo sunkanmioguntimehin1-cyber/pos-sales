@@ -109,6 +109,19 @@ async function main() {
   check('outlet is 10 after transfer', store === 10, afterTransfer.body);
   check('total conserved at 25', afterTransfer.body.total === 25);
 
+  // --- movement log ---------------------------------------------------------
+  const movements = await api('/api/products/movements', { token });
+  const transferLog = movements.body.movements.filter((m) => m.source === 'transfer');
+  const hqOut = transferLog.find((m) => m.branchId.id === headOffice.id);
+  const storeIn = transferLog.find((m) => m.branchId.id === outlet.id);
+  check('movements endpoint lists the transfer', transferLog.length === 2, movements.body);
+  check('out log records the source leaving', hqOut?.quantity === -10, hqOut);
+  check('in log records the destination arriving', storeIn?.quantity === 10, storeIn);
+  check('transfer log rows share a reference', hqOut?.ref === storeIn?.ref, transferLog);
+
+  const outletLogs = await api(`/api/products/movements?branchId=${outlet.id}`, { token });
+  check('movements filter by location', outletLogs.body.movements.length === 1, outletLogs.body);
+
   const oversell = await api('/api/transfers', {
     method: 'POST', token,
     body: { fromBranchId: headOffice.id, toBranchId: outlet.id, items: [{ productId: product.id, quantity: 9999 }] },
@@ -173,6 +186,12 @@ async function main() {
   await api(`/api/orders/${order.id}/status`, { method: 'PUT', token, body: { status: 'cancelled' } });
   const afterCancel = await api(`/api/products/${product.id}/stock`, { token });
   check('cancel restored the outlet to 10', afterCancel.body.stockLevels.find((l) => l.branchId === outlet.id)?.quantity === 10);
+
+  const orderMovements = await api(`/api/products/movements?productId=${product.id}`, { token });
+  const restock = orderMovements.body.movements.find((m) => m.source === 'order' && m.quantity > 0);
+  const saleLog = orderMovements.body.movements.find((m) => m.source === 'order' && m.quantity < 0);
+  check('sale logged against the order number', saleLog?.quantity === -3 && /^ORD-/.test(saleLog.ref || ''), saleLog);
+  check('cancel credits the returned stock into the log', restock?.quantity === 3, restock);
 
   // cancelling again must not credit twice
   await api(`/api/orders/${order.id}/status`, { method: 'PUT', token, body: { status: 'cancelled' } });

@@ -1,13 +1,13 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { IconStore, IconAlertTriangle } from '@/components/ui/Icons';
-import { InventoryItem, StockAdjustmentFormData } from './types';
+import { InventoryItem, StockAdjustmentFormData, StockLog } from './types';
 import { InventoryTable } from './InventoryTable';
 import { StockAdjustmentForm } from './StockAdjustmentForm';
 import { AddInventoryModal } from './AddInventoryModal';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { StockHistoryPanel } from './StockHistoryPanel';
-import { useProducts, useAdjustStock, useSetStockTarget, useCreateProduct, useBranches, getProductCategoryName } from '@/lib/hooks';
+import { useProducts, useStockMovements, useAdjustStock, useSetStockTarget, useCreateProduct, useBranches, getProductCategoryName } from '@/lib/hooks';
 // A `<select>` needs a value, so "no location" is a sentinel rather than ''.
 import { ALL_LOCATIONS_SENTINEL as ALL_LOCATIONS, toBranchQueryId } from '@/lib/utils/branchQuery';
 
@@ -29,6 +29,24 @@ export function InventoryScreen() {
   const adjustStock = useAdjustStock();
   const setStockTarget = useSetStockTarget();
   const createProduct = useCreateProduct();
+
+  // The Movement Log scoped to the same location as the table: "All locations"
+  // reads company-wide, a single branch reads just that shelf. The Movements
+  // query shares the branch sentinel handling so "all" never reaches the API.
+  const { data: movements = [] } = useStockMovements({ branchId: toBranchQueryId(locationId) });
+
+  const stockLogs: StockLog[] = useMemo(() => movements.map(m => ({
+    id: m.id,
+    time: new Date(m.createdAt).toLocaleString(),
+    type: m.type,
+    product: m.productName,
+    qty: m.quantity,
+    ref: m.ref ?? 'Movement',
+    user: m.staffName ?? '—',
+    fromBranch: m.fromBranchId?.name,
+    toBranch: m.toBranchId?.name,
+    note: m.note,
+  })), [movements]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAdjustPanelOpen, setIsAdjustPanelOpen] = useState(false);
@@ -197,7 +215,7 @@ export function InventoryScreen() {
 
       <InventoryTable
         inventory={inventory}
-        logs={[]}
+        logs={stockLogs}
         onAddInventory={() => setIsAddModalOpen(true)}
         onAdjustStock={() => setIsAdjustPanelOpen(true)}
         onViewHistory={handleViewHistory}
@@ -253,7 +271,7 @@ export function InventoryScreen() {
         title={`Stock History — ${historyItem?.name || ''}`}
         width="480px"
       >
-        {historyItem && <StockHistoryPanel product={historyItem} logs={[]} />}
+        {historyItem && <StockHistoryPanel product={historyItem} logs={stockLogs} />}
       </SidePanel>
     </div>
   );

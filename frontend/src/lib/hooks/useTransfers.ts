@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { transfersApi, CreateTransferData } from '@/lib/api';
 import { toBranchQueryId } from '@/lib/utils/branchQuery';
+import { MOVEMENTS_KEY } from './useStockMovements';
 
 export type { StockTransfer, CreateTransferData } from '@/lib/api/transfers';
 export {
@@ -40,10 +41,11 @@ export function useCreateTransfer() {
     // showing a row that a validation error will later retract reads as a
     // phantom movement.
     onSettled: () => {
-      // Stock moved between locations, so every product's per-location figures
-      // and the company-wide totals are all stale now.
+      // Stock moved between locations, so every product's per-location figures,
+      // the company-wide totals, and the movement log are all stale now.
       queryClient.invalidateQueries({ queryKey: TRANSFERS });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: MOVEMENTS_KEY });
     },
   });
 }

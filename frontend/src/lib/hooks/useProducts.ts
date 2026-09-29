@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { productsApi, Product, CreateProductData, Category } from '@/lib/api';
 import { snapshotLists, patchLists, restoreLists } from './optimistic';
+import { MOVEMENTS_KEY } from './useStockMovements';
 
 export type { Product, Category, CreateProductData, ProductStockLevel } from '@/lib/api/products';
 export { getProductCategoryName, getProductCategoryId } from '@/lib/api/products';
@@ -60,6 +61,7 @@ export function useCreateProduct() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: PRODUCTS });
+      queryClient.invalidateQueries({ queryKey: MOVEMENTS_KEY });
     },
   });
 }
@@ -135,6 +137,7 @@ export function useAdjustStock() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['product-stock'] });
+      queryClient.invalidateQueries({ queryKey: MOVEMENTS_KEY });
     },
   });
 }

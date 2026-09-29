@@ -4,8 +4,9 @@ import { Stock } from '../models/stock.model.js';
 import { Branch } from '../models/branch.model.js';
 import { respondWithError } from '../utils/respondWithError.js';
 import {
-  getHeadOfficeId, getProductStockLevels, setLocationStock, adjustLocationStock, InsufficientStockError,
+  getHeadOfficeId, getProductStockLevels, setLocationStock, adjustLocationStock, getLocationStock, InsufficientStockError,
 } from '../services/stock.service.js';
+import { recordMovements, getMovements as getStockMovements } from '../services/stockLog.service.js';
 
 export async function getProducts(req, res) {
   try {
@@ -126,6 +127,20 @@ export async function createProduct(req, res) {
       minQuantity: lowStockThreshold || 10,
     });
 
+    // The opening quantity is a movement like any other: it enters the log so
+    // the Movement Log shows where a brand-new product's stock came from.
+    await recordMovements([{
+      productId: product._id,
+      branchId: headOfficeId,
+      type: 'receive',
+      quantity: openingStock,
+      source: 'create',
+      sourceId: product._id,
+      ref: product.sku || 'New product',
+      note: 'Opening stock',
+      staffId: req.user?.userId,
+    }]);
+
     await product.populate('categoryId', 'name color');
 
     res.status(201).json({ product });
@@ -224,6 +239,32 @@ function toStockBreakdown(stockLevels) {
   };
 }
 
+/**
+ * The Movement Log: every recorded stock change, newest first.
+ *
+ * The source of truth for the Inventory screen's Movement Log tab and the
+ * Stock History panel. Entries are one per location per movement, so a
+ * transfer surfaces as an out row and an in row sharing a ref. Filters are
+ * optional and composable; without one it returns the latest movements across
+ * the whole business.
+ */
+export async function getMovements(req, res) {
+  try {
+    const { productId, branchId, type, startDate, endDate, limit } = req.query;
+    const movements = await getStockMovements({
+      productId,
+      branchId,
+      type,
+      startDate,
+      endDate,
+      limit,
+    });
+    res.json({ movements });
+  } catch (error) {
+    respondWithError(res, error, { context: 'Get movements error', message: 'Failed to get movements' });
+  }
+}
+
 /** Per-location breakdown of where a product's stock is held. */
 export async function getProductStock(req, res) {
   try {
@@ -305,11 +346,18 @@ export async function adjustStock(req, res) {
     const targetBranchId = branchId || (await getHeadOfficeId());
     const amount = Number(adjustment) || 0;
 
+    // The Movement Log records the delta actually applied, so the before
+    // quantity is captured for corrections and for clamping write-offs.
+    const before = await getLocationStock(productId, targetBranchId);
+    let delta = 0;
+
     if (type === 'set') {
       await setLocationStock(productId, targetBranchId, amount);
+      delta = amount - before;
     } else {
       try {
         await adjustLocationStock(productId, targetBranchId, amount);
+        delta = amount;
       } catch (error) {
         if (!(error instanceof InsufficientStockError)) throw error;
         // Preserves the long-standing behaviour of the stock screen: writing
@@ -317,7 +365,27 @@ export async function adjustStock(req, res) {
         // order path uses the throwing variant instead, because a sale must
         // not silently oversell.
         await setLocationStock(productId, targetBranchId, 0);
+        delta = -before;
       }
+    }
+
+    // A zero delta is a no-op and would only clutter the log with rooms made.
+    if (delta !== 0) {
+      const logType = type === 'set' ? 'correction' : (amount > 0 ? 'receive' : 'damage');
+      const note = type === 'set'
+        ? `Count correction from ${before} to ${amount}`
+        : (amount > 0 ? `Restocked +${amount}` : `Written off ${Math.abs(amount)}`);
+      await recordMovements([{
+        productId,
+        branchId: targetBranchId,
+        type: logType,
+        quantity: delta,
+        source: 'adjust',
+        sourceId: product._id,
+        ref: 'Manual adjustment',
+        note,
+        staffId: req.user?.userId,
+      }]);
     }
 
     const updated = await Product.findById(productId).populate('categoryId', 'name color');

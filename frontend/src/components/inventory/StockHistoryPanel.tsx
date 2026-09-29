@@ -11,7 +11,7 @@ const logIcon = (t: string) => {
   switch (t) {
     case 'sale': return '🛍️';
     case 'receive': return '📦';
-    case 'adjust': return '🔧';
+    case 'correction': return '🔧';
     case 'damage': return '⚠️';
     case 'transfer': return '↔️';
     default: return '📋';
@@ -22,7 +22,7 @@ const logColorCls = (t: string) => {
   switch (t) {
     case 'sale': return 'text-red-400 bg-red-500/10';
     case 'receive': return 'text-emerald-400 bg-emerald-500/10';
-    case 'adjust': return 'text-amber-400 bg-amber-500/10';
+    case 'correction': return 'text-amber-400 bg-amber-500/10';
     case 'damage': return 'text-red-400 bg-red-500/10';
     case 'transfer': return 'text-blue-400 bg-blue-500/10';
     default: return 'text-muted bg-[var(--input-bg)]';
@@ -33,7 +33,7 @@ const typeLabel = (t: string) => {
   switch (t) {
     case 'sale': return 'Sale';
     case 'receive': return 'Received';
-    case 'adjust': return 'Adjustment';
+    case 'correction': return 'Correction';
     case 'damage': return 'Damage';
     case 'transfer': return 'Transfer';
     default: return 'Other';
@@ -86,7 +86,9 @@ export function StockHistoryPanel({ product, logs }: StockHistoryPanelProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-semibold text-[var(--text)]">{typeLabel(log.type)}</div>
-                  <div className="text-[11px] text-subtle mt-px">{log.ref} · {log.user}</div>
+                  <div className="text-[11px] text-subtle mt-px">
+                    {log.fromBranch && log.toBranch ? `${log.fromBranch} → ${log.toBranch} · ` : ''}{log.ref} · {log.user}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className={`text-sm font-extrabold tabular-nums flex items-center gap-1 ${log.qty > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
