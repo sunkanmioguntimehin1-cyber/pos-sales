@@ -3,5 +3,7 @@ export { Staff } from './staff.model.js';
 export { Branch } from './branch.model.js';
 export { Category } from './category.model.js';
 export { Product } from './product.model.js';
+export { Stock } from './stock.model.js';
+export { StockTransfer } from './stockTransfer.model.js';
 export { Customer } from './customer.model.js';
 export { Order } from './order.model.js';

@@ -1,10 +1,13 @@
 'use client';
 import { Controller, UseFormReturn } from 'react-hook-form';
+import { IconStore } from '@/components/ui/Icons';
 import { BranchFormData } from './types';
 
 interface BranchFormProps {
   control: UseFormReturn<BranchFormData>['control'];
   errors: UseFormReturn<BranchFormData>['formState']['errors'];
+  /** The head office can never be taken offline, so the control is locked. */
+  isHeadOffice?: boolean;
 }
 
 const inputCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all";
@@ -14,9 +17,16 @@ const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--bo
 const selectErrorCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-red-500 rounded-lg text-muted text-[13px] outline-none focus:border-red-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 const textareaCls = "w-full h-20 px-3 py-2 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all resize-none";
 
-export function BranchForm({ control, errors }: BranchFormProps) {
+export function BranchForm({ control, errors, isHeadOffice = false }: BranchFormProps) {
   return (
     <div className="flex flex-col gap-3">
+      {isHeadOffice && (
+        <div className="flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-[11px] text-violet-400">
+          <IconStore size={13} />
+          Head office receives all new stock and can never be deactivated.
+        </div>
+      )}
+
       <div>
         <label className={labelCls}>Branch Name *</label>
         <Controller
@@ -104,7 +114,8 @@ export function BranchForm({ control, errors }: BranchFormProps) {
           render={({ field }) => (
             <select
               {...field}
-              className={selectCls}
+              disabled={isHeadOffice}
+              className={`${selectCls} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>

@@ -1,6 +1,6 @@
 'use client';
 import { SidePanel } from '@/components/ui/SidePanel';
-import { IconMapPin, IconPhone, IconCheck, IconX } from '@/components/ui/Icons';
+import { IconMapPin, IconPhone, IconUser, IconStore, IconXCircle } from '@/components/ui/Icons';
 import { Branch } from '@/lib/api/branches';
 
 interface ViewBranchPanelProps {
@@ -21,19 +21,33 @@ export function ViewBranchPanel({ isOpen, onClose, branch }: ViewBranchPanelProp
     >
       <div className="flex flex-col gap-5">
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[15px] font-bold text-[var(--text)]">{branch.name}</h3>
-            <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold ${
-              branch.isDefault 
-                ? 'bg-emerald-500/15 text-emerald-400' 
-                : 'bg-[var(--input-bg)] text-muted'
-            }`}>
-              {branch.isDefault ? (
-                <span className="flex items-center gap-1"><IconCheck size={10} /> Default</span>
-              ) : (
-                <span className="flex items-center gap-1"><IconX size={10} /> Inactive</span>
-              )}
-            </span>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-bold text-[var(--text)] truncate">{branch.name}</h3>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {branch.type === 'head_office' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/15 text-violet-400">
+                    <IconStore size={10} /> Head Office
+                  </span>
+                )}
+                {/* Status and default are separate facts: the head office is
+                    always the default, and any branch can be inactive. */}
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  branch.status === 'active'
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'bg-[var(--input-bg)] text-muted'
+                }`}>
+                  {branch.status === 'active' ? 'Active' : (
+                    <><IconXCircle size={10} /> Inactive</>
+                  )}
+                </span>
+                {branch.isDefault && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400">
+                    Default Location
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-subtle">
             <IconMapPin size={14} />
@@ -44,6 +58,15 @@ export function ViewBranchPanel({ isOpen, onClose, branch }: ViewBranchPanelProp
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-3">Contact Information</div>
           <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <IconUser size={14} />
+              </div>
+              <div>
+                <div className="text-[10px] text-subtle uppercase">Manager</div>
+                <div className="text-[13px] text-[var(--text)]">{branch.manager || '-'}</div>
+              </div>
+            </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                 <IconPhone size={14} />

@@ -33,7 +33,9 @@ export function useCreateOrder() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      // A sale draws stock from the location the terminal is set to.
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-stock'] });
       // A completed sale bumps the customer's totalSpent/visitCount server-side.
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
@@ -46,11 +48,16 @@ export function useUpdateOrderStatus() {
   return useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: Order['status'] }) =>
       ordersApi.updateStatus(orderId, status),
-    onSuccess: () => {
-      toast.success('Order status updated successfully!');
+    onSuccess: (_data, { status }) => {
+      toast.success(`Order ${status === 'cancelled' ? 'cancelled' : status} successfully!`);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      // Cancelling or refunding puts the goods back on the shelf.
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-stock'] });
+      // A restock also reverses the customer's visit count and spend.
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 }

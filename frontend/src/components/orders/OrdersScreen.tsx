@@ -1,8 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { IconSearch, IconDownload, IconReceipt } from '@/components/ui/Icons';
+import {
+  IconSearch, IconDownload, IconReceipt, IconStore, IconRefresh, IconX, IconAlertTriangle,
+} from '@/components/ui/Icons';
+import { Modal } from '@/components/ui/Modal';
 import { SkeletonTable } from '@/components/ui/Skeleton';
-import { useOrders, Order, getOrderCustomerName, getOrderStaffName } from '@/lib/hooks';
+import {
+  useOrders, useUpdateOrderStatus, Order,
+  getOrderCustomerName, getOrderStaffName, getOrderBranchName,
+} from '@/lib/hooks';
 
 const selectCls = "h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none";
 
@@ -55,10 +61,18 @@ type DateRangeKey = keyof typeof DATE_RANGES;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 
+/** Both of these put the goods back on the shelf at the selling location. */
+const RESTOCKING_ACTIONS: { value: Order['status']; label: string; verb: string }[] = [
+  { value: 'cancelled', label: 'Cancel', verb: 'cancel' },
+  { value: 'refunded', label: 'Refund', verb: 'refund' },
+];
+
 export function OrdersScreen() {
   const [search, setSearch]   = useState('');
   const [statusF, setStatusF] = useState<string>(ALL_STATUSES);
   const [dateF, setDateF]     = useState<DateRangeKey | 'All'>('All');
+  const [pendingAction, setPendingAction] = useState<{ order: Order; status: Order['status'] } | null>(null);
+  const updateStatus = useUpdateOrderStatus();
 
   const { startDate, endDate } = dateF === 'All'
     ? { startDate: undefined, endDate: undefined }
@@ -146,7 +160,7 @@ export function OrdersScreen() {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  {['Order ID', 'Customer', 'Cashier', 'Items', 'Method', 'Total', 'Time', 'Status', ''].map(h => (
+                  {['Order ID', 'Customer', 'Cashier', 'Location', 'Items', 'Method', 'Total', 'Time', 'Status', ''].map(h => (
                     <th key={h} className="px-3.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -159,6 +173,12 @@ export function OrdersScreen() {
                     </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] text-[var(--text)] font-medium text-sm">{getOrderCustomerName(o) || 'Walk-in'}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] text-muted text-xs">{getOrderStaffName(o) || '-'}</td>
+                    <td className="px-3.5 py-3 border-b border-[var(--border)] text-muted text-xs">
+                      <span className="inline-flex items-center gap-1">
+                        <IconStore size={11} className="text-subtle" />
+                        {getOrderBranchName(o) ?? '-'}
+                      </span>
+                    </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
                       <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[var(--surface-2)] text-[11px] font-bold text-muted">{o.items.length}</span>
                     </td>
@@ -171,9 +191,33 @@ export function OrdersScreen() {
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_BADGE_CLASS[o.status] ?? 'bg-[var(--input-bg)] text-muted'}`}>{getStatusLabel(o.status)}</span>
                     </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
-                      <button className="w-7 h-7 flex items-center justify-center rounded-md bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] transition-all">
-                        <IconReceipt size={11} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="w-7 h-7 flex items-center justify-center rounded-md bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] transition-all"
+                          title="View receipt"
+                          aria-label={`View receipt for ${o.orderNumber}`}
+                        >
+                          <IconReceipt size={11} />
+                        </button>
+                        {/* Only an order that actually moved stock can be
+                            reversed; re-reversing would double-count. */}
+                        {(o.status === 'completed' || o.status === 'pending') &&
+                          RESTOCKING_ACTIONS.map(action => (
+                            <button
+                              key={action.value}
+                              onClick={() => setPendingAction({ order: o, status: action.value })}
+                              className={`w-7 h-7 flex items-center justify-center rounded-md border transition-all ${
+                                action.value === 'refunded'
+                                  ? 'bg-[var(--surface-2)] border-[var(--border-strong)] text-muted hover:text-amber-400 hover:bg-amber-500/10'
+                                  : 'bg-[var(--surface-2)] border-[var(--border-strong)] text-muted hover:text-red-400 hover:bg-red-500/10'
+                              }`}
+                              title={`${action.label} this order and return its stock`}
+                              aria-label={`${action.label} order ${o.orderNumber}`}
+                            >
+                              {action.value === 'refunded' ? <IconRefresh size={11} /> : <IconX size={11} />}
+                            </button>
+                          ))}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -191,6 +235,63 @@ export function OrdersScreen() {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        title={pendingAction ? `${pendingAction.status === 'refunded' ? 'Refund' : 'Cancel'} order ${pendingAction.order.orderNumber}?` : ''}
+        width="sm"
+        footer={
+          <>
+            <button
+              onClick={() => setPendingAction(null)}
+              className="h-9 px-4 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
+            >
+              Keep Order
+            </button>
+            <button
+              onClick={() => {
+                if (!pendingAction) return;
+                updateStatus.mutate(
+                  { orderId: pendingAction.order.id, status: pendingAction.status },
+                  { onSettled: () => setPendingAction(null) }
+                );
+              }}
+              disabled={updateStatus.isPending}
+              className={`h-9 px-4 text-white rounded-lg text-[13px] font-semibold transition-all disabled:opacity-40 ${
+                pendingAction?.status === 'refunded' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-500 hover:bg-red-600'
+              }`}
+            >
+              {pendingAction?.status === 'refunded' ? 'Refund' : 'Cancel Order'}
+            </button>
+          </>
+        }
+      >
+        {pendingAction && (
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <IconAlertTriangle size={24} className="text-amber-400" />
+            </div>
+            <p className="text-[13px] text-muted">
+              This will return every item on the order to stock at{' '}
+              <span className="font-semibold text-[var(--text)]">
+                {getOrderBranchName(pendingAction.order) ?? 'its original location'}
+              </span>.
+            </p>
+            <ul className="w-full flex flex-col gap-1 text-left">
+              {pendingAction.order.items.map((item, i) => (
+                <li key={`${item.productId}-${i}`} className="flex items-center justify-between text-[12px] px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'var(--input-bg)' }}>
+                  <span className="text-[var(--text)] font-medium">{item.productName}</span>
+                  <span className="text-subtle tabular-nums">×{item.quantity}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-subtle">
+              The stock is returned once. This cannot be applied again to the same order.
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -4,12 +4,14 @@ import dotenv from 'dotenv';
 import { connectDB, disconnectDB } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import { seedAdmin } from './seed.js';
+import { ensureHeadOffice, backfillHeadOfficeStock } from './services/stock.service.js';
 import storeRoutes from './routes/store.routes.js';
 import staffRoutes from './routes/staff.routes.js';
 import productsRoutes from './routes/products.routes.js';
 import ordersRoutes from './routes/orders.routes.js';
 import branchesRoutes from './routes/branches.routes.js';
 import customersRoutes from './routes/customers.routes.js';
+import transfersRoutes from './routes/transfers.routes.js';
 
 dotenv.config();
 
@@ -44,6 +46,7 @@ app.use('/api/products', productsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/branches', branchesRoutes);
 app.use('/api/customers', customersRoutes);
+app.use('/api/transfers', transfersRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
@@ -75,6 +78,16 @@ app.use((err, _req, res, _next) => {
 async function startServer() {
   await connectDB();
   await seedAdmin();
+
+  // Before serving any request: the head office is the location new stock is
+  // booked into, so nothing that writes a product can run without it. The
+  // backfill is idempotent and only seeds rows that are genuinely missing.
+  const headOffice = await ensureHeadOffice();
+  const seeded = await backfillHeadOfficeStock();
+  console.log(`Head office: ${headOffice.name} (${headOffice._id})`);
+  if (seeded > 0) {
+    console.log(`Seeded head office stock for ${seeded} product(s)`);
+  }
 
   const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

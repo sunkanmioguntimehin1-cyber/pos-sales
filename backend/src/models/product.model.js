@@ -24,6 +24,19 @@ productSchema.index({ categoryId: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 
+/**
+ * Business-wide total across all locations.
+ *
+ * `stock` holds the total on disk, but GET /api/products?branchId=X rewrites it
+ * in the response to that location's quantity. Stashing the real total in
+ * $locals and reading it back through this virtual means the client can show
+ * "3 here / 40 company-wide" from one payload. When the response is not
+ * location-scoped it simply mirrors `stock`.
+ */
+productSchema.virtual('totalStock').get(function getTotalStock() {
+  return this.$locals.totalStock ?? this.stock ?? 0;
+});
+
 applyIdVirtual(productSchema);
 
 export const Product = mongoose.model('Product', productSchema);

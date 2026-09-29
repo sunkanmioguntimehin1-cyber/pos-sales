@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { BranchForm } from './BranchForm';
@@ -16,16 +17,26 @@ export function EditBranchModal({ isOpen, onClose, onEdit, branch }: EditBranchM
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<BranchFormData>({
-    defaultValues: branch ? {
+    defaultValues: emptyBranchFormData,
+  });
+
+  // `defaultValues` is only read on mount, and this modal stays mounted across
+  // opens — so without an explicit reset the second branch you edit would show
+  // the first one's details. It also used to blank the manager and infer status
+  // from `isDefault`, which is a separate concern entirely.
+  useEffect(() => {
+    if (!isOpen || !branch) return;
+    reset({
       name: branch.name,
       address: branch.address || '',
       phone: branch.phone || '',
-      manager: '',
-      status: branch.isDefault ? 'active' : 'inactive',
-    } : emptyBranchFormData,
-  });
+      manager: branch.manager || '',
+      status: branch.status,
+    });
+  }, [isOpen, branch, reset]);
 
   const onFormSubmit = (data: BranchFormData) => {
     if (branch) {
@@ -35,6 +46,7 @@ export function EditBranchModal({ isOpen, onClose, onEdit, branch }: EditBranchM
   };
 
   const handleClose = () => {
+    reset(emptyBranchFormData);
     onClose();
   };
 
@@ -61,7 +73,11 @@ export function EditBranchModal({ isOpen, onClose, onEdit, branch }: EditBranchM
         </>
       }
     >
-      <BranchForm control={control} errors={errors} />
+      <BranchForm
+        control={control}
+        errors={errors}
+        isHeadOffice={branch?.type === 'head_office'}
+      />
     </Modal>
   );
 }

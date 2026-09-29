@@ -7,6 +7,16 @@ const orderItemSchema = new Schema({
   quantity: { type: Number, required: true, min: 1 },
   unitPrice: { type: Number, required: true, min: 0 },
   totalPrice: { type: Number, required: true, min: 0 },
+  /**
+   * The location this unit was actually drawn from, which is not necessarily
+   * the order header's branchId (the POS lets a cashier pick which till's
+   * location to sell from). Restoring stock on cancel or refund has to credit
+   * back the location it left, or the totals drift.
+   *
+   * Optional: orders placed before per-location stock existed have no value
+   * here and fall back to the header branch.
+   */
+  locationId: { type: Schema.Types.ObjectId, ref: 'Branch' },
 }, { _id: false });
 
 const orderSchema = new Schema(

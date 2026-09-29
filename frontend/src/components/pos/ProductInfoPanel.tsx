@@ -1,21 +1,13 @@
 'use client';
-import { IconStore, IconPackage, IconUser } from '@/components/ui/Icons';
+import { IconStore, IconPackage } from '@/components/ui/Icons';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { Product } from './types';
-import { getProductCategoryName } from '@/lib/hooks';
-
-interface BranchStock {
-  branchId: number;
-  branchName: string;
-  quantity: number;
-  location: string;
-}
+import { getProductCategoryName, useProductStock } from '@/lib/hooks';
 
 interface ProductInfoPanelProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  branchInventory: BranchStock[];
   onAddToCart: (product: Product) => void;
 }
 
@@ -25,10 +17,16 @@ const stockStatus = (qty: number) => {
   return { label: 'In Stock', color: 'text-emerald-400 bg-emerald-500/15' };
 };
 
-export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, onAddToCart }: ProductInfoPanelProps) {
+export function ProductInfoPanel({ isOpen, onClose, product, onAddToCart }: ProductInfoPanelProps) {
+  // Fetched here rather than passed in: the breakdown is per-product, and the
+  // panel is the only thing that ever needed it. It used to be handed an empty
+  // array from a stub, which is why "Total Stock" always read 0.
+  const { data: stockData, isLoading: isLoadingStock } = useProductStock(product?.id ?? null);
+
   if (!product) return null;
 
-  const totalStock = branchInventory.reduce((sum, b) => sum + b.quantity, 0);
+  const branchInventory = stockData?.stockLevels ?? [];
+  const totalStock = stockData?.total ?? 0;
 
   return (
     <SidePanel
@@ -85,7 +83,7 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[10px] text-subtle uppercase">Stock</div>
+                  <div className="text-[10px] text-subtle uppercase">At This Location</div>
                   <div className="text-[12px] text-[var(--text)] font-semibold">{product.stock}</div>
                 </div>
               </div>
@@ -116,26 +114,47 @@ export function ProductInfoPanel({ isOpen, onClose, product, branchInventory, on
         <div>
           <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-3 flex items-center gap-2">
             <IconStore size={12} />
-            Branch Inventory
+            Stock by Location
           </div>
           <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle">Branch</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle">Location</th>
                   <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-subtle">Qty</th>
                   <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-subtle">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {branchInventory.map((branch) => {
-                  const status = stockStatus(branch.quantity);
+                {isLoadingStock && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-subtle text-[11px]">
+                      Loading stock…
+                    </td>
+                  </tr>
+                )}
+                {!isLoadingStock && branchInventory.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-subtle text-[11px]">
+                      No stock is held at any location yet
+                    </td>
+                  </tr>
+                )}
+                {branchInventory.map((level) => {
+                  const status = stockStatus(level.quantity);
                   return (
-                    <tr key={branch.branchId} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--input-bg)]">
-                      <td className="px-4 py-3 text-[12px] text-[var(--text)] font-semibold">{branch.branchName}</td>
-                      <td className="px-4 py-3 text-[11px] text-subtle font-mono">{branch.location}</td>
-                      <td className="px-4 py-3 text-[12px] text-[var(--text)] font-extrabold text-right tabular-nums">{branch.quantity}</td>
+                    <tr key={level.id} className="border-t border-[var(--border)] hover:bg-[var(--input-bg)]">
+                      <td className="px-4 py-3 text-[12px] text-[var(--text)] font-semibold">
+                        <div className="flex items-center gap-1.5">
+                          {level.branchName}
+                          {level.branchType === 'head_office' && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 text-[9px] font-bold">
+                              HQ
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-[12px] text-[var(--text)] font-extrabold text-right tabular-nums">{level.quantity}</td>
                       <td className="px-4 py-3 text-right">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${status.color}`}>
                           {status.label}

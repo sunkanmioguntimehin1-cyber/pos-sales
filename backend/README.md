@@ -115,6 +115,42 @@ development only — use `USE_MEMORY_DB=true` and expect to lose your data.
 - Request bodies are limited to 6 MB.
 - Only `/api/auth/login` and `/api/health` are public.
 
+## Stock and locations
+
+Stock is tracked **per location**. A location is a `Branch` document, and one of
+them is always the **head office**.
+
+`Stock` (`productId` + `branchId`, unique together) is the source of truth. A
+product's `stock` field is a denormalised **company-wide total** kept in sync by
+`src/services/stock.service.js`; every write must go through that service or the
+two drift apart.
+
+- **Exactly one head office** exists (`type: 'head_office'`), enforced by a
+  partial unique index. It is always `isDefault` and is created automatically on
+  boot, so there is nothing to configure.
+- On upgrade from a pre-head-office database, `ensureHeadOffice()` promotes the
+  existing default branch rather than creating a second one, and
+  `backfillHeadOfficeStock()` gives every product a head-office stock row. Both
+  are idempotent and run on every start.
+- The head office **cannot be deleted, deactivated, or retyped.**
+- **New product stock is always booked into the head office.** `POST /api/products`
+  ignores any location and books `stock` there. Branches get their stock from
+  transfers.
+- `GET /api/products?branchId=X` returns that location's quantity in `stock` and
+  leaves the company-wide figure in the `totalStock` virtual. Without
+  `branchId`, `stock` and `totalStock` are the same number.
+
+Because stock is per location, a sale draws from **the branch it was rung up at**
+(`branchId`, defaulting to head office) and each order line records the
+`locationId` it came off. Cancelling or refunding returns the goods to that same
+location exactly once.
+
+> **No transactions.** The in-memory database is a single node with no replica
+> set, so multi-document operations (transfers, order rollback) use compensating
+> writes rather than `session.withTransaction()`. Transfers validate everything
+> up front and unwind on failure; `scripts/smoke.js` asserts a failed transfer
+> leaves stock untouched.
+
 ## Endpoints
 
 ### Health
@@ -156,12 +192,13 @@ development only — use `USE_MEMORY_DB=true` and expect to lose your data.
 | POST   | `/categories`            | `name` required. |
 | PUT    | `/categories/:categoryId`| |
 | DELETE | `/categories/:categoryId`| |
-| GET    | `/`                      | Filters: `category` (**an id**), `search`, `isActive`. |
-| POST   | `/`                      | `name`, `price` required. |
+| GET    | `/`                      | Filters: `category` (**an id**), `search`, `isActive`, `branchId`. With `branchId`, `stock` is that location's quantity; `totalStock` is always the company-wide total. |
+| POST   | `/`                      | `name`, `price` required. `stock` is **opening stock booked into the head office**. |
 | GET    | `/:productId`            | Single product, `categoryId` populated. |
-| PUT    | `/:productId`            | Partial update. |
-| DELETE | `/:productId`            | |
-| POST   | `/:productId/stock`      | `{ adjustment, type: 'set' \| 'adjust' }` — `set` treats `adjustment` as the absolute new count, `adjust` adds it (negative to remove). |
+| PUT    | `/:productId`            | Partial update. A `stock` change is applied at the head office. |
+| DELETE | `/:productId`            | Also removes the product's stock rows. |
+| GET    | `/:productId/stock`      | `{ stockLevels: [{ id, branchId, branchName, branchType, quantity, updatedAt }], total }` |
+| POST   | `/:productId/stock`      | `{ adjustment, type: 'set' \| 'adjust', branchId? }` — `set` treats `adjustment` as the absolute new count, `adjust` adds it (negative to remove). `branchId` defaults to the head office. A negative result is rejected. |
 
 `/categories` is registered before `/:productId` so it is not shadowed by the
 dynamic route.
@@ -173,7 +210,7 @@ dynamic route.
 | GET    | `/`                 | Filters: `status`, `startDate`, `endDate` (ISO dates). |
 | POST   | `/`                 | See below. |
 | GET    | `/:orderId`         | Single order with `customerId`, `staffId`, `branchId` populated. |
-| PUT    | `/:orderId/status`  | `{ status }` — one of `pending`, `completed`, `cancelled`, `refunded`. |
+| PUT    | `/:orderId/status`  | `{ status }` — one of `pending`, `completed`, `cancelled`, `refunded`. `cancelled` and `refunded` return the items to stock. |
 
 `POST /api/orders`:
 
@@ -181,12 +218,18 @@ dynamic route.
 - `subtotal`, `tax`, `total` are required; `tax` defaults to `0`.
 - `staffId` is **required**. It falls back to the authenticated user's id when
   omitted, so the POS screen can attribute a sale to the cashier who rang it up.
-- `customerId` and `branchId` are optional.
+- `customerId` is optional. `branchId` defaults to the **head office** and is
+  the location stock is drawn from; each line stores the `locationId` it came
+  off, so a later return goes back to the right shelf.
 - `status` is not accepted on create; it defaults to `completed`. Use
   `PUT /:orderId/status` to change it.
 - Every referenced product is loaded and its stock validated **before** anything
-  is written. Stock is only decremented once all items pass.
+  is written. Stock is only decremented once all items pass, and a failure part
+  way through unwinds the lines already written.
 - On success the customer's `totalSpent`, `visitCount` and `lastVisit` are updated.
+- Moving an order to `cancelled` or `refunded` returns its items to stock and
+  reverses the customer counters. This happens **once**: re-applying the same
+  status is a no-op, so a double click cannot double-credit.
 - Order numbers are `ORD-YYYYMMDD-XXXXXX`; a duplicate key collision retries
   with a fresh number.
 
@@ -194,15 +237,40 @@ dynamic route.
 
 | Method | Path          | Description |
 | ------ | ------------- | ----------- |
-| GET    | `/`           | |
-| POST   | `/`           | `name` required; `address`, `phone`, `status` (`active`/`inactive`), `isDefault`. |
+| GET    | `/`           | Head office first, then branches alphabetically. Created on demand if none exists. |
+| POST   | `/`           | `name` required; `address`, `phone`, `status` (`active`/`inactive`), `manager`. Always created as `type: 'branch'` — callers cannot mint a second head office. |
 | GET    | `/:branchId`  | |
-| PUT    | `/:branchId`  | Partial update. |
-| DELETE | `/:branchId`  | |
+| PUT    | `/:branchId`  | Partial update. `type` and `isDefault` are not editable. |
+| DELETE | `/:branchId`  | Refused for the head office. |
 
-`isDefault` (which branch a sale belongs to) and `status` (active/inactive) are
-independent fields. The controller clears `isDefault` from other branches when
-one is set as default.
+`isDefault` (which location new stock is booked into) and `status`
+(active/inactive) are independent fields. The controller clears `isDefault` from
+other branches when one is set as default, and re-asserts the head office as
+default on every read.
+
+`type` is `head_office` or `branch`. The head office is the default location,
+receives all new stock, and cannot be deleted, deactivated, or retyped. `manager`
+is a free-text name and is not linked to a staff account.
+
+### Stock transfers — `/api/transfers`
+
+Moves stock from one location to another. Records are immutable; there is no
+update or delete.
+
+| Method | Path            | Description |
+| ------ | --------------- | ----------- |
+| GET    | `/`             | Filters: `branchId` (matches transfers in either direction), `startDate`, `endDate`, `limit`. `fromBranchId`, `toBranchId` and `staffId` are populated. |
+| POST   | `/`             | `{ fromBranchId, toBranchId, items: [{ productId, productName?, quantity }], staffId?, notes? }` |
+| GET    | `/:transferId`  | Single transfer. |
+
+`POST /api/transfers`:
+
+- The two locations must differ, and the source must hold enough of every line.
+- Duplicate products in `items` are merged before the source is checked.
+- Stock is deducted from the source and added to the destination, then the
+  product totals are resynced. Any failure unwinds the writes that landed, so a
+  rejected transfer leaves stock exactly as it was.
+- A transfer never changes the company-wide total — only where it sits.
 
 ### Customers — `/api/customers`
 
@@ -221,8 +289,22 @@ model behind them. Do not expect them to work:
 
 - Superadmin / platform-admin endpoints
 - Multi-tenancy (no `storeId` scoping on any model — a single store per database)
-- Per-branch inventory (products have one `stock` number, not a per-branch split)
 - Product image upload (products have an `image` URL field, no storage backend)
 - Email delivery (receipt "send" is frontend-only)
-- Order refunds/returns beyond setting `status` to `refunded`
+- Partial refunds or returns — a refund is all-or-nothing for the order
 - Sales reports (the Reports screen is computed client-side from the orders list)
+- Stock movement history: `GET /api/products/:id/stock` returns current
+  quantities per location, not a ledger of past movements. `StockLog` rows from
+  the Inventory screen's "Movement Log" tab are not persisted by the API.
+
+## Tests
+
+```bash
+npm test                        # node:test — 45 tests
+node scripts/smoke.js <url>     # end-to-end HTTP against a running server
+```
+
+`test/` covers the stock service, location-aware orders, and transfers against
+an in-memory MongoDB. `scripts/smoke.js` exercises the same paths over real HTTP
+and asserts, among other things, that a failed transfer changes nothing and that
+re-cancelling an order does not double-credit stock.

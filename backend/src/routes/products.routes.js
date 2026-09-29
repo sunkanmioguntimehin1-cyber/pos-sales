@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { 
   getProducts, getProduct, createProduct, updateProduct, deleteProduct, adjustStock,
+  getProductStock,
   getCategories, createCategory, updateCategory, deleteCategory 
 } from '../controllers/products.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
@@ -18,6 +19,9 @@ router.delete('/categories/:categoryId', deleteCategory);
 
 router.get('/', getProducts);
 router.post('/', createProduct);
+// Same ordering trap as `/categories` above: this literal segment has to be
+// matched before the `/:productId/...` patterns.
+router.get('/:productId/stock', getProductStock);
 router.get('/:productId', getProduct);
 router.put('/:productId', updateProduct);
 router.delete('/:productId', deleteProduct);

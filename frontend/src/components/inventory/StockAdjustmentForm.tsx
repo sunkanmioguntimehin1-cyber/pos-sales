@@ -1,11 +1,13 @@
 'use client';
 import { useForm, Controller } from 'react-hook-form';
 import { IconAlertTriangle } from '@/components/ui/Icons';
-import { StockAdjustmentFormData, InventoryItem } from './types';
+import { StockAdjustmentFormData, InventoryItem, ADJUSTMENT_TYPE_OPTIONS } from './types';
 
 interface StockAdjustmentFormProps {
   onSubmit: (data: StockAdjustmentFormData) => void;
   inventory: InventoryItem[];
+  /** Name of the location adjustments will be applied to. */
+  locationName?: string;
 }
 
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
@@ -13,7 +15,7 @@ const selectErrorCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-red-
 const inputCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all";
 const inputErrorCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-red-500 rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-red-500 transition-all";
 
-export function StockAdjustmentForm({ onSubmit, inventory }: StockAdjustmentFormProps) {
+export function StockAdjustmentForm({ onSubmit, inventory, locationName }: StockAdjustmentFormProps) {
   const {
     control,
     handleSubmit,
@@ -62,9 +64,12 @@ export function StockAdjustmentForm({ onSubmit, inventory }: StockAdjustmentForm
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 h-fit">
-      <div className="font-bold text-[13px] text-[var(--text)] mb-3.5 flex items-center gap-1.5">
+      <div className="font-bold text-[13px] text-[var(--text)] mb-1.5 flex items-center gap-1.5">
         <IconAlertTriangle size={13} className="text-amber-400" />
         Stock Adjustment
+      </div>
+      <div className="text-[11px] text-subtle mb-3.5">
+        Applied to <span className="font-semibold text-[var(--text)]">{locationName ?? 'head office'}</span>.
       </div>
       <form id="stock-adjustment-form" onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col gap-3">
         <div>
@@ -103,10 +108,9 @@ export function StockAdjustmentForm({ onSubmit, inventory }: StockAdjustmentForm
                   className={errors.type ? selectErrorCls : selectCls}
                 >
                   <option value="">Select type…</option>
-                  <option value="receive">Add stock (receive)</option>
-                  <option value="damage">Remove stock (damage)</option>
-                  <option value="correction">Count correction</option>
-                  <option value="transfer">Transfer out</option>
+                  {ADJUSTMENT_TYPE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
                 {errors.type && <span className="text-[11px] text-red-400 mt-1">{errors.type.message}</span>}
               </>

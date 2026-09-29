@@ -7,6 +7,7 @@ import { POSTerminalScreen } from '@/components/pos/POSTerminalScreen';
 import { ProductsScreen } from '@/components/products/ProductsScreen';
 import { CategoriesScreen } from '@/components/categories/CategoriesScreen';
 import { InventoryScreen } from '@/components/inventory/InventoryScreen';
+import { TransfersScreen } from '@/components/transfers/TransfersScreen';
 import { OrdersScreen } from '@/components/orders/OrdersScreen';
 import { CustomersScreen as BaseCustomersScreen } from '@/components/customers/CustomersScreen';
 import { BranchesScreen } from '@/components/branches/BranchesScreen';
@@ -41,6 +42,7 @@ export default function DashboardPage() {
           case 'products':   return <ProductsScreen />;
           case 'categories': return <CategoriesScreen />;
           case 'inventory':  return <InventoryScreen />;
+          case 'transfers':  return <TransfersScreen />;
           case 'orders':     return <OrdersScreen />;
           case 'customers':  return <CustomersScreen />;
           case 'reports':    return <ReportsScreen />;

@@ -4,7 +4,13 @@ export interface InventoryItem {
   name: string;
   /** Category name resolved from the product's populated `categoryId`. */
   category: string;
+  /**
+   * Quantity at the location the screen is scoped to — or the company-wide
+   * total when no single location is selected.
+   */
   onHand: number;
+  /** Company-wide total, always the same regardless of the selected location. */
+  totalStock: number;
   reserved: number;
   available: number;
   reorder: number;
@@ -30,6 +36,17 @@ export interface StockAdjustmentFormData {
   quantity: string;
   note: string;
 }
+
+/**
+ * Stock movements between locations are recorded on the Transfers screen, not
+ * as an adjustment. Leaving it here would silently subtract from head office
+ * without the units ever arriving anywhere.
+ */
+export const ADJUSTMENT_TYPE_OPTIONS: { value: Exclude<StockAdjustmentType, 'transfer'>; label: string }[] = [
+  { value: 'receive', label: 'Add stock (receive)' },
+  { value: 'damage', label: 'Remove stock (damage)' },
+  { value: 'correction', label: 'Count correction' },
+];
 
 /**
  * Mirrors the product schema. The old form had colour/size/location/reserved

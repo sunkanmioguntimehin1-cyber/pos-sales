@@ -42,17 +42,22 @@ export function BranchesScreen() {
       address: data.address,
       phone: data.phone,
       status: data.status,
+      manager: data.manager,
     });
   };
 
   const handleEditBranch = (id: string, data: BranchFormData) => {
+    const branch = branches.find((b) => b.id === id);
+    // The head office cannot be deactivated; the backend rejects the request,
+    // so don't offer to send it.
     updateBranch.mutate({
       branchId: id,
       data: {
         name: data.name,
         address: data.address,
         phone: data.phone,
-        status: data.status,
+        status: branch?.type === 'head_office' ? 'active' : data.status,
+        manager: data.manager,
       },
     });
   };
@@ -65,16 +70,16 @@ export function BranchesScreen() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
-          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Total Branches</div>
+          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Total Locations</div>
           <div className="text-[26px] font-extrabold text-blue-400">{isLoading ? '...' : branches.length}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Active</div>
-          <div className="text-[26px] font-extrabold text-emerald-400">{isLoading ? '...' : branches.length}</div>
+          <div className="text-[26px] font-extrabold text-emerald-400">{isLoading ? '...' : activeCount}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Inactive</div>
-          <div className="text-[26px] font-extrabold text-muted">0</div>
+          <div className="text-[26px] font-extrabold text-muted">{isLoading ? '...' : inactiveCount}</div>
         </div>
       </div>
 
@@ -113,7 +118,7 @@ export function BranchesScreen() {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  {['Branch Name', 'Address', 'Phone', 'Status', 'Actions'].map(h => (
+                  {['Location', 'Manager', 'Address', 'Phone', 'Status', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                       {h}
                     </th>
@@ -125,12 +130,24 @@ export function BranchesScreen() {
                   <tr key={branch.id} className="hover:bg-[var(--input-bg)] transition-colors">
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          branch.type === 'head_office'
+                            ? 'bg-violet-500/10 text-violet-400'
+                            : 'bg-blue-500/10 text-blue-400'
+                        }`}>
                           <IconStore size={14} />
                         </div>
-                        <span className="font-semibold text-[var(--text)] text-[13px]">{branch.name}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-semibold text-[var(--text)] text-[13px] truncate">{branch.name}</span>
+                          {branch.type === 'head_office' && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 text-[9px] font-bold whitespace-nowrap">
+                              HQ
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
+                    <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted">{branch.manager || '-'}</td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted max-w-[200px] truncate">{branch.address || '-'}</td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted">{branch.phone || '-'}</td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">
@@ -173,8 +190,9 @@ export function BranchesScreen() {
                             setSelectedBranch(branch);
                             setIsDeleteModalOpen(true);
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
-                          title="Delete Branch"
+                          disabled={branch.type === 'head_office'}
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted"
+                          title={branch.type === 'head_office' ? 'The head office cannot be deleted' : 'Delete Branch'}
                         >
                           <IconTrash size={14} />
                         </button>
@@ -189,7 +207,7 @@ export function BranchesScreen() {
 
         <div className="px-4 py-2.5 border-t border-[var(--border)] bg-[var(--surface-2)]">
           <span className="text-xs text-subtle">
-            Showing {filteredBranches.length} of {branches.length} branches
+            Showing {filteredBranches.length} of {branches.length} locations
           </span>
         </div>
       </div>

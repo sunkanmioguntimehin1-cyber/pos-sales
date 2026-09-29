@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { branchesApi, Branch, CreateBranchData } from '@/lib/api';
 import { snapshotLists, patchLists, restoreLists } from './optimistic';
+import { useActiveBranchStore } from '@/store/activeBranchStore';
 
 export type { Branch, CreateBranchData } from '@/lib/api/branches';
 
@@ -13,6 +15,38 @@ export function useBranches() {
     queryFn: () => branchesApi.getAll(),
     staleTime: 60 * 1000,
   });
+}
+
+/**
+ * The location the POS is currently set to.
+ *
+ * Falls back to the head office when nothing is stored, when the branch list
+ * is still loading, or when the stored choice refers to a branch that has been
+ * deleted. The fallback is written back to the store so the choice converges
+ * instead of being recomputed on every render.
+ */
+export function useActiveBranch() {
+  const { data: branches = [], isLoading } = useBranches();
+  const activeBranchId = useActiveBranchStore((s) => s.activeBranchId);
+  const setActiveBranchId = useActiveBranchStore((s) => s.setActiveBranchId);
+
+  const activeBranch = (() => {
+    if (branches.length === 0) return null;
+    return (
+      branches.find((branch) => branch.id === activeBranchId) ??
+      branches.find((branch) => branch.type === 'head_office') ??
+      branches.find((branch) => branch.isDefault) ??
+      branches[0]
+    );
+  })();
+
+  useEffect(() => {
+    if (!isLoading && activeBranch && activeBranch.id !== activeBranchId) {
+      setActiveBranchId(activeBranch.id);
+    }
+  }, [isLoading, activeBranch, activeBranchId, setActiveBranchId]);
+
+  return { activeBranch, branches, isLoading, setActiveBranchId };
 }
 
 export function useBranch(branchId: string) {
@@ -38,7 +72,8 @@ export function useCreateBranch() {
         {
           ...newBranch,
           id: `temp-${Date.now()}`,
-          isDefault: newBranch.isDefault || false,
+          isDefault: false,
+          type: 'branch',
           status: newBranch.status || 'active',
           createdAt: new Date().toISOString(),
         } as Branch,

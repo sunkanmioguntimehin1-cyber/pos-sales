@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import {
   IconDashboard, IconOrders, IconProducts, IconCategories, IconInventory,
   IconCustomers, IconReports, IconSettings, IconPOS, IconStore, IconUser,
-  IconChevronRight, IconX,
+  IconChevronRight, IconX, IconUpload,
 } from '@/components/ui/Icons';
 
 type NavItem =
@@ -21,6 +21,7 @@ const nav: NavItem[] = [
   { id: 'categories', label: 'Categories',   Icon: IconCategories },
   { section: 'Operations' },
   { id: 'inventory',  label: 'Inventory',    Icon: IconInventory },
+  { id: 'transfers',  label: 'Transfers',    Icon: IconUpload },
   { id: 'customers',  label: 'Customers',    Icon: IconCustomers },
   { id: 'reports',    label: 'Reports',      Icon: IconReports },
   { section: 'Configuration' },

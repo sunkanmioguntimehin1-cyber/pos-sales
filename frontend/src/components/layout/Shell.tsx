@@ -15,6 +15,7 @@ const PAGE_META: Record<string, [string, string]> = {
   products:   ['Products',     'Manage your product catalog'],
   categories: ['Categories',   'Organize products into categories'],
   inventory:  ['Inventory',    'Track stock levels and movements'],
+  transfers:  ['Transfers',    'Move stock between locations'],
   customers:  ['Customers',    'Customer database and purchase history'],
   reports:    ['Reports',      'Sales analytics and performance metrics'],
   branches:   ['Branches',     'Manage store locations and branches'],

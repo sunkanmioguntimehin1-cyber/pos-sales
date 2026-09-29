@@ -1,4 +1,4 @@
-import { Product as ApiProduct, Customer as ApiCustomer } from '@/lib/api';
+import { Product as ApiProduct, Customer as ApiCustomer, ProductStockLevel } from '@/lib/api';
 
 export type Product = ApiProduct;
 export type Customer = ApiCustomer;
@@ -7,12 +7,8 @@ export interface CartItem extends Product {
   qty: number;
 }
 
-export interface BranchStock {
-  branchId: string;
-  branchName: string;
-  quantity: number;
-  location: string;
-}
+/** Per-location stock for a product, as returned by the stock breakdown endpoint. */
+export type BranchStock = ProductStockLevel;
 
 export type PaymentMethod = 'cash' | 'transfer' | 'pos';
 export type BankType = 'gtb' | 'firstbank';
@@ -37,7 +33,3 @@ export const POS_MACHINES: { id: POSMachineType; name: string }[] = [
 ];
 
 export const CATEGORIES = ['All', 'Electronics', 'Cases', 'Accessories', 'Cables'];
-
-export function getBranchInventory(branchId: string) {
-  return [];
-}

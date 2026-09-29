@@ -9,6 +9,13 @@ export interface Branch {
   status: 'active' | 'inactive';
   /** Exactly one branch may be the store default; the backend enforces this. */
   isDefault: boolean;
+  /**
+   * The head office is the central store new stock is booked into. Exactly one
+   * exists, it is always the default, and it cannot be deleted — the backend
+   * guarantees all three, so this can be trusted rather than inferred.
+   */
+  type: 'head_office' | 'branch';
+  manager?: string;
   createdAt: string;
 }
 
@@ -17,7 +24,7 @@ export interface CreateBranchData {
   address?: string;
   phone?: string;
   status?: 'active' | 'inactive';
-  isDefault?: boolean;
+  manager?: string;
 }
 
 export const branchesApi = {

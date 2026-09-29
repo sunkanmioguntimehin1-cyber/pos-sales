@@ -214,7 +214,7 @@ export function ProductsScreen() {
                   <th className="w-10 px-3.5 py-2.5 text-left border-b border-[var(--border)] bg-[var(--surface-2)]">
                     <input type="checkbox" className="accent-blue-500" />
                   </th>
-                  {['Product', 'Category', 'Price', 'Stock', 'Status', ''].map(h => (
+                  {['Product', 'Category', 'Price', 'Total Stock', 'Status', ''].map(h => (
                     <th key={h} className="px-3.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">
                       {h}
                     </th>

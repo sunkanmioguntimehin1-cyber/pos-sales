@@ -279,7 +279,7 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
-          <label className={labelCls}>Stock *</label>
+          <label className={labelCls}>Opening Stock (Head Office) *</label>
           <Controller
             name="stock"
             control={control}
@@ -292,6 +292,11 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
                   className={errors.stock ? inputErrorCls : inputCls}
                   placeholder="0"
                 />
+                {/* The backend books a new product's stock into the head
+                    office; branches get theirs from a transfer. */}
+                <span className="text-[11px] text-subtle mt-1 block">
+                  Received at head office. Send stock to branches from Transfers.
+                </span>
                 {errors.stock && <span className="text-[11px] text-red-400 mt-1">{errors.stock.message}</span>}
               </>
             )}

@@ -8,15 +8,16 @@ import {
 } from '@/components/ui/Icons';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { ProductInfoPanel } from './ProductInfoPanel';
+import { LocationSwitcher } from './LocationSwitcher';
 import { AddCustomerModal } from './AddCustomerModal';
 import { StaffSelectionModal } from './StaffSelectionModal';
 import { ReceiptModal } from './ReceiptModal';
 import {
-  Product, CartItem, Customer, getBranchInventory, SplitPayment, PaymentMethod, BANKS, POS_MACHINES, BankType, POSMachineType
+  Product, CartItem, Customer, SplitPayment, PaymentMethod, BANKS, POS_MACHINES, BankType, POSMachineType
 } from './types';
 import { Staff } from '@/components/staff/types';
 import {
-  useProducts, useCategories, useCustomers, useCreateCustomer, useStaff, useCreateOrder, useBranches,
+  useProducts, useCategories, useCustomers, useCreateCustomer, useStaff, useCreateOrder, useActiveBranch,
   useStore,
   getProductCategoryId, getProductCategoryName,
 } from '@/lib/hooks';
@@ -52,11 +53,17 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
 const ALL_CATEGORIES = 'all';
 
 export function POSTerminalScreen() {
-  const { data: products = [], isLoading: isLoadingProducts } = useProducts({ isActive: true });
+  // The terminal sells from one shelf at a time: `stock` comes back scoped to
+  // the selected location, so a product that was never sent to a branch shows
+  // as out of stock there instead of leaking the head office's count.
+  const { activeBranch } = useActiveBranch();
+  const { data: products = [], isLoading: isLoadingProducts } = useProducts({
+    isActive: true,
+    branchId: activeBranch?.id,
+  });
   const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
   const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
   const { data: staffList = [], isLoading: isLoadingStaff } = useStaff({ status: 'active' });
-  const { data: branches = [] } = useBranches();
   const { data: store } = useStore();
   const createOrder = useCreateOrder();
   const createCustomer = useCreateCustomer();
@@ -194,8 +201,6 @@ export function POSTerminalScreen() {
     setSelectedStaff(staff);
     setIsStaffModalOpen(false);
 
-    const defaultBranch = branches.find(b => b.isDefault) || branches[0];
-
     // Round the totals before sending: money stored as 6.0000000001 in Mongo
     // would fail the schema's min checks downstream and skew reports.
     const orderSubtotal = round2(subtotal);
@@ -217,7 +222,7 @@ export function POSTerminalScreen() {
         paymentMethod: buildPaymentLabel(),
         staffId: staff.id,
         customerId: selectedCustomer?.id,
-        branchId: defaultBranch?.id,
+        branchId: activeBranch?.id,
       });
 
       setCompletedSaleData({
@@ -322,6 +327,7 @@ export function POSTerminalScreen() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
+          <LocationSwitcher locked={cart.length > 0} />
           <button className="flex items-center gap-1.5 h-9 px-3.5 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg text-[13px] font-semibold transition-all flex-shrink-0">
             <IconScan size={14} /> Scan
           </button>
@@ -971,7 +977,6 @@ export function POSTerminalScreen() {
         isOpen={isProductPanelOpen}
         onClose={() => setIsProductPanelOpen(false)}
         product={selectedProduct}
-        branchInventory={selectedProduct ? getBranchInventory(selectedProduct.id) : []}
         onAddToCart={handleAddToCart}
       />
 
