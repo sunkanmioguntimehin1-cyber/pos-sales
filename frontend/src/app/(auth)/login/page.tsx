@@ -11,6 +11,13 @@ const highlights = [
   "Sales analytics that update as you sell",
 ];
 
+// Dev-only login hint. The password is deliberately absent: it lives only in
+// backend/.env. NEXT_PUBLIC_* values are inlined into the client bundle at
+// build time whether or not this renders, so a password here would ship to
+// every visitor.
+const demoAdminEmail = process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL;
+const showDemoHint = process.env.NODE_ENV !== "production" && Boolean(demoAdminEmail);
+
 export default function LoginPage() {
   const router = useRouter();
   const loginMutation = useLogin();
@@ -196,15 +203,19 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div
-            className="mt-6 rounded-xl border px-4 py-3 text-[12.5px]"
-            style={{ backgroundColor: "var(--input-bg)", borderColor: "var(--border)" }}
-          >
-            <span className="eyebrow">Demo credentials</span>
-            <div className="mt-1.5 font-mono text-[12px] text-muted">
-              admin@example.com&nbsp;/&nbsp;password
+          {showDemoHint && (
+            <div
+              className="mt-6 rounded-xl border px-4 py-3 text-[12.5px]"
+              style={{ backgroundColor: "var(--input-bg)", borderColor: "var(--border)" }}
+            >
+              <span className="eyebrow">Demo credentials</span>
+              <div className="mt-1.5 font-mono text-[12px] text-muted">{demoAdminEmail}</div>
+              <div className="mt-1 text-[12px] text-subtle">
+                Password is in <span className="font-mono">backend/.env</span> as{" "}
+                <span className="font-mono">ADMIN_PASSWORD</span>.
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

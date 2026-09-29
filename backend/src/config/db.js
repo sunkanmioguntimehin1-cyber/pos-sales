@@ -14,17 +14,6 @@ async function startMemoryServer() {
   return memoryServer.getUri('pos-saas');
 }
 
-async function isReachable(uri) {
-  try {
-    const probe = mongoose.createConnection();
-    await probe.openUri(uri, { serverSelectionTimeoutMS: 5000 });
-    await probe.close();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function connectDB() {
   let uri = MONGODB_URI;
 
@@ -34,21 +23,22 @@ export async function connectDB() {
     }
     console.log('🗄️  Starting in-memory MongoDB…');
     uri = await startMemoryServer();
-  } else if (!(await isReachable(uri))) {
-    console.warn('⚠️  Could not reach MONGODB_URI — falling back to in-memory MongoDB.');
-    console.warn('   Set a working connection string in backend/.env to use a real database.');
-    uri = await startMemoryServer();
   }
 
   try {
-    await mongoose.connect(uri);
-    console.log('✅ Connected to MongoDB');
-    if (memoryServer) {
-      console.log('   (ephemeral in-memory instance — data resets when the process exits)');
-    }
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
+    console.error('❌ Could not connect to MongoDB at MONGODB_URI.');
+    console.error(`   ${error.message}`);
+    console.error('   Check that the cluster is running, your IP is in the Atlas');
+    console.error('   Network Access allowlist, and the credentials in the URI are correct.');
     process.exit(1);
+  }
+
+  if (memoryServer) {
+    console.log('✅ Connected to MongoDB (ephemeral in-memory instance — data resets when the process exits)');
+  } else {
+    console.log(`✅ Connected to MongoDB "${mongoose.connection.name}"`);
   }
 
   return mongoose.connection;

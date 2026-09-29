@@ -33,8 +33,19 @@ A multi-tenant Point of Sale (POS) SaaS application.
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your MongoDB URI
 ```
+
+Set at least these in `.env`:
+
+| Variable         | Purpose                                                        |
+| ---------------- | -------------------------------------------------------------- |
+| `MONGODB_URI`    | Your Atlas connection string.                                    |
+| `ADMIN_EMAIL`    | Login for the admin account seeded on first start.              |
+| `ADMIN_PASSWORD` | Password for that account — set a real one, not the default.    |
+| `JWT_SECRET`     | Token signing key. `openssl rand -hex 32`                        |
+
+If `MONGODB_URI` is set, the backend **will not start** if Atlas is unreachable
+— it fails fast instead of falling back to a throwaway database.
 
 ### 3. Start Backend
 
@@ -43,6 +54,8 @@ cd backend
 npm install
 npm run dev
 ```
+
+You should see `✅ Connected to MongoDB "pos-saas"` in the logs.
 
 ### 4. Start Frontend
 
@@ -72,5 +85,5 @@ See `backend/README.md` for full API documentation.
 |-------|------------|
 | Frontend | Next.js, React, Zustand |
 | Backend | Express.js (JavaScript, ESM) |
-| Database | MongoDB (in-memory fallback for local dev) |
+| Database | MongoDB Atlas (optional in-memory fallback for offline dev) |
 | Auth | JWT |

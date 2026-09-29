@@ -9,8 +9,9 @@ Express + Mongoose REST API for the point-of-sale app.
 ## Requirements
 
 - Node.js 18+ (developed on 22.x)
-- A MongoDB connection string, **or** nothing at all in local development (see
-  [Database](#database))
+- A MongoDB Atlas connection string. For offline development only, a running
+  server with no `MONGODB_URI` will start a throwaway in-memory MongoDB instead
+  (see [Database](#database)).
 
 ## Setup
 
@@ -22,14 +23,17 @@ cp .env.example .env
 
 ### Environment variables
 
-| Variable          | Default | Notes                                                                  |
-| ----------------- | ------- | ---------------------------------------------------------------------- |
-| `PORT`            | `5000`  | Local dev uses `5001` because macOS AirPlay Receiver holds `5000`.      |
-| `MONGODB_URI`     | _empty_ | Leave empty to force the in-memory fallback.                            |
-| `USE_MEMORY_DB`   | `false` | Set `true` to skip the Atlas probe and start in-memory immediately.     |
-| `FRONTEND_URL`    | _empty_ | Comma-separated list of allowed CORS origins.                           |
-| `JWT_SECRET`      | _empty_ | **Required for a real deployment.**                                    |
-| `NODE_ENV`        | `dev`   |                                                                       |
+| Variable          | Default             | Notes                                                                    |
+| ----------------- | ------------------- | ------------------------------------------------------------------------ |
+| `PORT`            | `5000`              | Local dev uses `5001` because macOS AirPlay Receiver holds `5000`.        |
+| `MONGODB_URI`     | _empty_             | Atlas connection string. If set, the server **refuses to start** on failure. |
+| `USE_MEMORY_DB`   | `false`             | Set `true` to force the in-memory database.                               |
+| `FRONTEND_URL`    | _empty_             | Comma-separated list of allowed CORS origins.                             |
+| `JWT_SECRET`      | _empty_             | **Required for a real deployment.**                                      |
+| `ADMIN_EMAIL`     | `admin@example.com` | Email of the seeded admin. The seed is keyed on this, not on role.       |
+| `ADMIN_PASSWORD`  | `password`          | Password of the seeded admin. **Change before your first run.** Applied only at creation. |
+| `ADMIN_NAME`      | `Admin`             | Display name for the seeded admin.                                        |
+| `NODE_ENV`        | `dev`               |                                                                          |
 
 ## Running
 
@@ -49,24 +53,53 @@ Or use the repo-root helper, which starts it in the background, waits for
 
 Logs go to `/tmp/pos-backend.log`, pid to `/tmp/pos-backend.pid`.
 
-On start the server seeds an admin account if none exists:
+On start the server seeds an admin account from `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+and `ADMIN_NAME` in `.env` (see the table above). **Set a real password before
+the first run** — otherwise the weak built-in default is created permanently in
+your database.
 
-- email: `admin@example.com`
-- password: `password`
+The seed is keyed on the **email**, not on `role: 'admin'`, and it only ever
+*creates*:
 
-**Change it before exposing this anywhere.**
+- Change `ADMIN_EMAIL` and restart → a new admin is created for that address.
+- Change `ADMIN_PASSWORD` and restart → **nothing happens.** The password is
+  only ever set at creation, so restarting can never revert a password you
+  changed through the Staff screen. Reset the account via `PUT /api/staff/:id`
+  instead.
+
+So `.env` is authoritative for a *fresh* database only. Once the account
+exists, treat it as a normal staff record managed through `/api/staff`.
+
+To re-run the seed from scratch, delete the staff record first:
+
+```bash
+TOKEN=$(curl -s -X POST localhost:5001/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"<current password>"}' | jq -r .token)
+curl -s localhost:5001/api/staff -H "Authorization: Bearer $TOKEN"   # find the id
+curl -s -X DELETE localhost:5001/api/staff/<id> -H "Authorization: Bearer $TOKEN"
+```
 
 ## Database
 
-`src/config/db.js` resolves the connection in this order:
+This project uses **MongoDB Atlas**. Set `MONGODB_URI` in `.env` and it is used.
 
-1. `USE_MEMORY_DB=true` → start an ephemeral `mongodb-memory-server`.
-2. `MONGODB_URI` set and reachable (5s probe) → connect to it.
-3. Otherwise → log a warning and start the in-memory server.
+`src/config/db.js` picks the database in this order:
+
+1. `USE_MEMORY_DB=true` → start an ephemeral `mongodb-memory-server`, ignoring
+   `MONGODB_URI`.
+2. `MONGODB_URI` empty → start an ephemeral `mongodb-memory-server`.
+3. Otherwise → connect to `MONGODB_URI`. **If that fails the process exits with a
+   non-zero status** and prints the driver error. It never falls back to the
+   in-memory server, so you can't accidentally write to a throwaway database
+   while believing you're on Atlas.
+
+Common connection failures: the cluster is paused or not yet provisioned, your
+IP is missing from the Atlas **Network Access** allowlist, or the password in
+the URI is wrong.
 
 The in-memory database is **wiped on every restart**, which includes product,
-category, staff, customer, order and branch data. Use a real `MONGODB_URI` for
-anything you need to keep.
+category, staff, customer, order and branch data. It exists for offline
+development only — use `USE_MEMORY_DB=true` and expect to lose your data.
 
 ## API conventions
 

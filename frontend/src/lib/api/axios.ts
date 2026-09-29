@@ -2,15 +2,15 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://pos-server-hmxz.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL || "https://pos-server-hmxz.onrender.com"; 
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000,
-});
+ const api = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    timeout: 10000,
+  });
 
 api.interceptors.request.use(
   (config) => {

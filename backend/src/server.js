@@ -16,8 +16,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// FRONTEND_URL is a comma-separated list of allowed origins. The cors package
+// accepts an array and reflects whichever entry matches the request's Origin
+// header, which is what lets credentials: true stay safe (never '*').
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true,
 }));
 // Product images are uploaded inline as base64 data URLs, so the default 100kb
