@@ -316,6 +316,7 @@
 import { useState, useEffect } from "react";
 import { PaymentMethodSettings } from "@/components/settings/PaymentMethodSettings";
 import { useStaff, useStore, useUpdateStore } from "@/lib/hooks";
+import { useCan } from "@/lib/auth/can";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 // Note: CustomersScreen has been REMOVED from this file.
@@ -406,6 +407,8 @@ export function SettingsScreen() {
   const [activeTab, setActiveTab] = useState("store");
   const { data: store, isLoading: storeLoading } = useStore();
   const updateStore = useUpdateStore();
+  const { has } = useCan();
+  const canManageSettings = has("settings:manage");
   // Uncontrolled-with-seed: `null` means "still showing the server value".
   // The old useEffect-to-setState pair caused an extra render on every load.
   const [storeNameOverride, setStoreNameOverride] = useState<string | null>(null);
@@ -546,13 +549,14 @@ export function SettingsScreen() {
                 >
                   <button
                     onClick={handleSaveStore}
-                    disabled={updateStore.isPending}
-                    className="h-9 px-4 text-white rounded-lg text-[13px] font-semibold transition-all shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
+                    disabled={updateStore.isPending || !canManageSettings}
+                    className="h-9 px-4 text-white rounded-lg text-[13px] font-semibold transition-all shadow-[0_2px_8px_rgba(59,130,246,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
                       backgroundColor: updateStore.isPending
                         ? "var(--color-primary)80"
                         : "var(--color-primary)",
                     }}
+                    title={canManageSettings ? undefined : "Your role doesn't include permission to edit store settings"}
                   >
                     {updateStore.isPending ? "Saving..." : "Save Changes"}
                   </button>

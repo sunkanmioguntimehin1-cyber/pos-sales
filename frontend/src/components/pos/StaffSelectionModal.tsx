@@ -101,8 +101,8 @@ export function StaffSelectionModal({ isOpen, onClose, onSelect, staffList }: St
                     <div className="text-[13px] font-semibold text-[var(--text)]">{staff.name}</div>
                     <div className="text-[11px] text-subtle">{staff.email}</div>
                   </div>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColors[staff.role]}`}>
-                    {roleLabels[staff.role]}
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${staff.roleColor ?? roleColors[staff.role] ?? 'bg-blue-500/15 text-blue-400'}`}>
+                    {staff.roleName ?? roleLabels[staff.role] ?? staff.role}
                   </span>
                 </button>
               ))

@@ -118,16 +118,35 @@ export async function syncProductStockTotal(productId) {
 }
 
 /** Sets the absolute quantity held at one location. */
-export async function setLocationStock(productId, branchId, quantity) {
+export async function setLocationStock(productId, branchId, quantity, { minQuantity } = {}) {
   const safeQuantity = Math.max(0, Number(quantity) || 0);
+
+  const set = { quantity: safeQuantity };
+  const setOnInsert = {};
+
+  // An explicit target is a decision applied now; otherwise a fresh row
+  // inherits the product's default threshold ($setOnInsert means an existing
+  // row's target is never touched — minQuantity is a decision, not a side
+  // effect of setting stock). Both operators must not name the same path.
+  if (minQuantity !== undefined) {
+    set.minQuantity = Math.max(0, Number(minQuantity) || 0);
+  } else {
+    setOnInsert.minQuantity = await defaultTarget(productId);
+  }
 
   await Stock.findOneAndUpdate(
     { productId: toObjectId(productId), branchId: toObjectId(branchId) },
-    { $set: { quantity: safeQuantity } },
+    { $set: set, $setOnInsert: setOnInsert },
     { upsert: true, new: true }
   );
 
   return syncProductStockTotal(productId);
+}
+
+/** The default minimum target for a product: its stored threshold, or 0. */
+async function defaultTarget(productId) {
+  const product = await Product.findById(toObjectId(productId)).select('lowStockThreshold').lean();
+  return product?.lowStockThreshold ?? 0;
 }
 
 /**
@@ -148,7 +167,13 @@ export async function adjustLocationStock(productId, branchId, delta, { allowNeg
     if (change < 0 && !allowNegative) {
       throw new InsufficientStockError(productId, branchId, Math.abs(change), 0);
     }
-    await Stock.create({ ...filter, quantity: Math.max(0, change) });
+    // The whole row is new (first time a transfer touches this shelf here), so
+    // it also inherits the product's default minimum target.
+    await Stock.create({
+      ...filter,
+      quantity: Math.max(0, change),
+      minQuantity: await defaultTarget(productId),
+    });
     return syncProductStockTotal(productId);
   }
 
@@ -224,14 +249,19 @@ export async function transferStock({ productId, fromBranchId, toBranchId, quant
  */
 export async function backfillHeadOfficeStock() {
   const headOffice = await ensureHeadOffice();
-  const products = await Product.find({}, { _id: 1, stock: 1 }).lean();
+  const products = await Product.find({}, { _id: 1, stock: 1, lowStockThreshold: 1 }).lean();
   if (products.length === 0) return 0;
 
   const result = await Stock.bulkWrite(
     products.map((product) => ({
       updateOne: {
         filter: { productId: product._id, branchId: headOffice._id },
-        update: { $setOnInsert: { quantity: product.stock || 0 } },
+        update: {
+          $setOnInsert: {
+            quantity: product.stock || 0,
+            minQuantity: product.lowStockThreshold || 0,
+          },
+        },
         upsert: true,
       },
     })),
@@ -239,6 +269,38 @@ export async function backfillHeadOfficeStock() {
   );
 
   return result.upsertedCount ?? 0;
+}
+
+/**
+ * Gives every per-location row a minimum target when it has none.
+ *
+ * Rows created before this feature have no `minQuantity`, and without this the
+ * Inventory screen would read 0 and flag every shelf Critical. Each row gets
+ * its product's threshold — the same default a brand-new row now inherits — so
+ * behaviour is unchanged until someone sets a target for that specific shelf.
+ * Idempotent and safe on every boot.
+ */
+export async function backfillBranchTargets() {
+  const rows = await Stock.find({ minQuantity: { $exists: false } }, { productId: 1 }).lean();
+  if (rows.length === 0) return 0;
+
+  const products = await Product.find(
+    { _id: { $in: [...new Set(rows.map((row) => row.productId))] } },
+    { _id: 1, lowStockThreshold: 1 }
+  ).lean();
+  const byProduct = new Map(products.map((product) => [String(product._id), product.lowStockThreshold || 0]));
+
+  const result = await Stock.bulkWrite(
+    rows.map((row) => ({
+      updateOne: {
+        filter: { _id: row._id },
+        update: { $set: { minQuantity: byProduct.get(String(row.productId)) ?? 0 } },
+      },
+    })),
+    { ordered: false }
+  );
+
+  return result.modifiedCount ?? 0;
 }
 
 /**

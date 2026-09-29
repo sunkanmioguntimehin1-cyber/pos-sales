@@ -11,6 +11,7 @@ import {
 } from '@/lib/hooks';
 import { AddBranchModal } from '@/components/branches/AddBranchModal';
 import { BranchFormData } from '@/components/branches/types';
+import { useCan } from '@/lib/auth/can';
 
 interface DraftLine {
   productId: string;
@@ -31,6 +32,9 @@ export function TransfersScreen() {
   const { data: transfers = [], isLoading, refetch, isFetching } = useTransfers();
   const { data: staffList = [] } = useStaff({ status: 'active' });
   const createTransfer = useCreateTransfer();
+  const { has } = useCan();
+  const canTransfer = has('stock:transfer');
+  const canMakeBranch = has('branches:manage');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
@@ -147,6 +151,7 @@ export function TransfersScreen() {
         >
           <IconRefresh size={15} className={isFetching ? 'animate-spin' : undefined} />
         </button>
+        {canTransfer && (
         <button
           onClick={openModal}
           disabled={branches.length < 2}
@@ -155,6 +160,7 @@ export function TransfersScreen() {
         >
           <IconPlus size={14} /> New Transfer
         </button>
+      )}
       </div>
 
       {branches.length < 2 && (
@@ -165,6 +171,7 @@ export function TransfersScreen() {
             is received at the head office, so add your first branch to start
             sending it out.
           </span>
+          {canMakeBranch && (
           <button
             onClick={() => setIsAddBranchOpen(true)}
             className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-[12px] font-semibold text-white transition-all"
@@ -172,6 +179,7 @@ export function TransfersScreen() {
           >
             <IconPlus size={13} /> Add Branch
           </button>
+        )}
         </div>
       )}
 

@@ -21,6 +21,7 @@ export function StockAdjustmentForm({ onSubmit, inventory, locationName }: Stock
     handleSubmit,
     reset,
     setError,
+    watch,
     formState: { errors },
   } = useForm<StockAdjustmentFormData>({
     defaultValues: {
@@ -28,8 +29,14 @@ export function StockAdjustmentForm({ onSubmit, inventory, locationName }: Stock
       type: '',
       quantity: '',
       note: '',
+      minQuantity: '',
     },
   });
+
+  // The location's current target for the product in the dropdown, so the
+  // field can show what the new minimum level would replace.
+  const selectedProductCode = watch('productCode');
+  const currentMinLevel = inventory.find((item) => item.productCode === selectedProductCode)?.reorder;
 
   const validateForm = (data: StockAdjustmentFormData): boolean => {
     let hasErrors = false;
@@ -46,6 +53,10 @@ export function StockAdjustmentForm({ onSubmit, inventory, locationName }: Stock
       setError('quantity', { type: 'manual', message: 'Quantity must be greater than 0' });
       hasErrors = true;
     }
+    if (data.minQuantity !== undefined && data.minQuantity !== '' && parseInt(data.minQuantity) < 0) {
+      setError('minQuantity', { type: 'manual', message: 'Minimum level cannot be negative' });
+      hasErrors = true;
+    }
 
     return !hasErrors;
   };
@@ -53,12 +64,17 @@ export function StockAdjustmentForm({ onSubmit, inventory, locationName }: Stock
   const onFormSubmit = (data: StockAdjustmentFormData) => {
     if (!validateForm(data)) return;
 
-    onSubmit(data);
+    // An empty min level just means the target is being left alone.
+    onSubmit({
+      ...data,
+      minQuantity: data.minQuantity?.trim() ? data.minQuantity : undefined,
+    });
     reset({
       productCode: '',
       type: '',
       quantity: '',
       note: '',
+      minQuantity: '',
     });
   };
 
@@ -152,6 +168,31 @@ export function StockAdjustmentForm({ onSubmit, inventory, locationName }: Stock
               />
             )}
           />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
+            Minimum Level (optional) — for {locationName ?? 'this location'}
+          </label>
+          <Controller
+            name="minQuantity"
+            control={control}
+            render={({ field }) => (
+              <>
+                <input
+                  {...field}
+                  type="number"
+                  min="0"
+                  className={errors.minQuantity ? inputErrorCls : inputCls}
+                  placeholder={currentMinLevel !== undefined ? `Set new target (currently ${currentMinLevel})` : 'Leave blank to keep current target'}
+                />
+                {errors.minQuantity && <span className="text-[11px] text-red-400 mt-1">{errors.minQuantity.message}</span>}
+              </>
+            )}
+          />
+          <span className="text-[11px] text-subtle mt-1 block">
+            0 turns the low-stock warning off for this product at this location.
+          </span>
         </div>
 
         <button type="submit" className="w-full h-9 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg text-[13px] shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all">

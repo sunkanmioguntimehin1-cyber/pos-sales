@@ -150,6 +150,24 @@ export function useProductStock(productId: string | null) {
   });
 }
 
+/** Sets a product's reorder target for one location. */
+export function useSetStockTarget() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, branchId, minQuantity }: { productId: string; branchId: string; minQuantity: number }) =>
+      productsApi.setStockTarget(productId, branchId, minQuantity),
+    onSuccess: () => {
+      toast.success('Reorder level updated!');
+    },
+    onSettled: () => {
+      // The products list carries `minQuantity`, so the Inventory screen must
+      // refetch so the new target reshades the low-stock statuses.
+      queryClient.invalidateQueries({ queryKey: PRODUCTS });
+    },
+  });
+}
+
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],

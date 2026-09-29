@@ -4,9 +4,11 @@ import dotenv from 'dotenv';
 import { connectDB, disconnectDB } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import { seedAdmin } from './seed.js';
-import { ensureHeadOffice, backfillHeadOfficeStock, backfillStaffBranch } from './services/stock.service.js';
+import { ensureRoles } from './services/role.service.js';
+import { ensureHeadOffice, backfillHeadOfficeStock, backfillStaffBranch, backfillBranchTargets } from './services/stock.service.js';
 import storeRoutes from './routes/store.routes.js';
 import staffRoutes from './routes/staff.routes.js';
+import rolesRoutes from './routes/roles.routes.js';
 import productsRoutes from './routes/products.routes.js';
 import ordersRoutes from './routes/orders.routes.js';
 import branchesRoutes from './routes/branches.routes.js';
@@ -42,6 +44,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/staff', staffRoutes);
+app.use('/api/roles', rolesRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/branches', branchesRoutes);
@@ -77,6 +80,15 @@ app.use((err, _req, res, _next) => {
 
 async function startServer() {
   await connectDB();
+
+  // Roles must exist before the seed admin (which names one) and before any
+  // login or staff read (which attaches role details). Idempotent: seeding an
+  // existing install leaves the admin's customisations alone.
+  const rolesSeeded = await ensureRoles();
+  if (rolesSeeded > 0) {
+    console.log(`Seeded ${rolesSeeded} role(s)`);
+  }
+
   await seedAdmin();
 
   // Before serving any request: the head office is the location new stock is
@@ -95,6 +107,14 @@ async function startServer() {
   const staffFiled = await backfillStaffBranch();
   if (staffFiled > 0) {
     console.log(`Assigned ${staffFiled} staff member(s) to the head office`);
+  }
+
+  // Give every location stock row a minimum target if it has none. The product
+  // threshold is the default, so a branch is treated as "restock at 10" until
+  // someone sets a target for that specific shelf.
+  const targetsSet = await backfillBranchTargets();
+  if (targetsSet > 0) {
+    console.log(`Set default stock targets for ${targetsSet} location row(s)`);
   }
 
   const server = app.listen(PORT, () => {

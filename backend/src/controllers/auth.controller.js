@@ -1,7 +1,21 @@
 import bcrypt from 'bcryptjs';
 import { Staff } from '../models/staff.model.js';
 import { generateToken } from '../utils/jwt.js';
+import { getRoleByKey } from '../services/role.service.js';
 import { respondWithError } from '../utils/respondWithError.js';
+
+/** Attach the role the token itself could not hold (display name + permissions) onto a user payload. */
+async function withRoleDetails(user) {
+  // A staff record whose role key has been deleted (shouldn't happen — delete
+  // is guarded) must still authenticate, so degrade to no permissions rather
+  // than a hard 500.
+  const role = await getRoleByKey(user.role);
+  return {
+    ...user,
+    roleName: role?.name ?? user.role,
+    permissions: role?.permissions ?? [],
+  };
+}
 
 export async function login(req, res) {
   try {
@@ -24,11 +38,16 @@ export async function login(req, res) {
       return;
     }
 
+    const role = await getRoleByKey(staffMember.role);
+    const permissions = role?.permissions ?? [];
+
     const token = generateToken({
       userId: staffMember._id.toString(),
       email: staffMember.email || '',
       name: staffMember.name,
       role: staffMember.role,
+      // Baked into the token so requirePermission is one check, no DB query.
+      permissions,
     });
 
     res.json({
@@ -38,6 +57,8 @@ export async function login(req, res) {
         email: staffMember.email,
         name: staffMember.name,
         role: staffMember.role,
+        roleName: role?.name ?? staffMember.role,
+        permissions,
       },
     });
   } catch (error) {
@@ -61,14 +82,15 @@ export async function getMe(req, res) {
       return;
     }
 
-    res.json({
-      user: {
-        id: String(staffMember._id),
-        email: staffMember.email,
-        name: staffMember.name,
-        role: staffMember.role,
-      },
-    });
+    const baseUser = {
+      id: String(staffMember._id),
+      email: staffMember.email,
+      name: staffMember.name,
+      role: staffMember.role,
+    };
+    const user = await withRoleDetails(baseUser);
+
+    res.json({ user });
   } catch (error) {
     respondWithError(res, error, { context: 'Get me error', message: 'Failed to get user' });
   }

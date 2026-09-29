@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { IconSearch, IconPlus, IconEdit, IconHistory, IconPrinter, IconSliders } from '@/components/ui/Icons';
 import { InventoryItem, StockLog } from './types';
+import { useCan } from '@/lib/auth/can';
 
 interface InventoryTableProps {
   inventory: InventoryItem[];
@@ -41,6 +42,9 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
   const [tab, setTab] = useState<'stock' | 'logs'>('stock');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
+  const { has } = useCan();
+  const canAdjust = has('stock:manage');
+  const canAdd = has('products:manage');
 
   // Real categories off the loaded products. The old list was hardcoded
   // ('Electronics', 'Cases', …) and matched against the product *name*, so
@@ -92,20 +96,24 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
         <div className="flex-1" />
         {tab === 'stock' && (
           <>
-            <button
-              onClick={onAdjustStock}
-              disabled={!!adjustDisabledReason}
-              title={adjustDisabledReason}
-              className="h-9 flex items-center gap-1.5 px-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(245,158,11,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500"
-            >
-              <IconSliders size={12} /> Adjust Stock
-            </button>
-            <button
-              onClick={onAddInventory}
-              className="h-9 flex items-center gap-1.5 px-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
-            >
-              <IconPlus size={12} /> Add Inventory
-            </button>
+            {canAdjust && (
+              <button
+                onClick={onAdjustStock}
+                disabled={!!adjustDisabledReason}
+                title={adjustDisabledReason}
+                className="h-9 flex items-center gap-1.5 px-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(245,158,11,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500"
+              >
+                <IconSliders size={12} /> Adjust Stock
+              </button>
+            )}
+            {canAdd && (
+              <button
+                onClick={onAddInventory}
+                className="h-9 flex items-center gap-1.5 px-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
+              >
+                <IconPlus size={12} /> Add Inventory
+              </button>
+            )}
           </>
         )}
       </div>

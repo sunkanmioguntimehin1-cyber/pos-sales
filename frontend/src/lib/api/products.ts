@@ -31,6 +31,14 @@ export interface Product {
   stock: number;
   /** Company-wide total, always present. Equals `stock` unless location-scoped. */
   totalStock: number;
+  /**
+   * The stock level a product should be reordered at — low enough to flag
+   * "reorder now" without emptying the shelf. This is the selected location's
+   * per-branch target when the request was scoped with `?branchId=`, and the
+   * fallback company-wide default otherwise.
+   */
+  minQuantity?: number;
+  /** The HQ-wide default target, used when a branch has never set its own. */
   lowStockThreshold: number;
   isActive: boolean;
   createdAt: string;
@@ -43,6 +51,8 @@ export interface ProductStockLevel {
   branchName: string;
   branchType: 'head_office' | 'branch';
   quantity: number;
+  /** That location's reorder target; `lowStockThreshold` when never set. */
+  minQuantity?: number;
   updatedAt: string;
 }
 
@@ -117,6 +127,16 @@ export const productsApi = {
     api.post<{ product: Product }>(
       `/api/products/${productId}/stock`,
       { adjustment, type, branchId }
+    ).then(res => res.data.product),
+
+  /**
+   * Sets the per-branch reorder target (`minQuantity`) for a product. `0` is a
+   * deliberate "never flag this" and is kept as-is by the backend.
+   */
+  setStockTarget: (productId: string, branchId: string, minQuantity: number) =>
+    api.put<{ product: Product }>(
+      `/api/products/${productId}/stock/${branchId}`,
+      { minQuantity }
     ).then(res => res.data.product),
   
   /** Where this product's stock is held, by location. */

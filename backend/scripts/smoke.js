@@ -124,6 +124,22 @@ async function main() {
   check('branchId scopes the returned stock', scopedProduct?.stock === 10, scopedProduct);
   check('totalStock still reports company-wide', scopedProduct?.totalStock === 25, scopedProduct);
 
+  // --- per-branch stock target ---------------------------------------------
+  // The product shipped without an explicit threshold, so the default of 10
+  // became the minimum target for its head-office row.
+  check('head-office row inherits the default minimum target', headRow?.minQuantity === 10, headRow);
+
+  const setTarget = await api(`/api/products/${product.id}/stock/${outlet.id}`, {
+    method: 'PUT', token, body: { minQuantity: 8 },
+  });
+  check('location target updated', setTarget.status === 200, setTarget.body);
+  const targetRow = setTarget.body.stockLevels?.find((l) => l.branchId === outlet.id);
+  check('outlet row reports the new target', targetRow?.minQuantity === 8, targetRow);
+
+  const scopedTarget = await api(`/api/products?branchId=${outlet.id}`, { token });
+  const scopedTargetProduct = scopedTarget.body.products.find((p) => p.id === product.id);
+  check('scoped list swaps in the branch target', scopedTargetProduct?.minQuantity === 8, scopedTargetProduct);
+
   // --- order draws from the chosen location -------------------------------
   const orderRes = await api('/api/orders', {
     method: 'POST', token,
@@ -188,6 +204,37 @@ async function main() {
   check('outlet roster includes its cashier and the admin',
     atOutletNames.includes('Mall Cashier') && atOutletNames.includes('Admin'),
     atOutletNames);
+
+  // --- roles and permissions -------------------------------------------------
+  const roles = await api('/api/roles', { token });
+  const roleByKey = new Map((roles.body.roles || []).map((role) => [role.key, role]));
+  check('default roles seeded', ['admin', 'manager', 'cashier'].every((key) => roleByKey.has(key)), roles.body);
+  check('admin is system and not location-bound',
+    roleByKey.get('admin')?.isSystem === true && roleByKey.get('admin')?.locationBound === false, roleByKey.get('admin'));
+
+  const custom = await api('/api/roles', { method: 'POST', token, body: { key: 'smoke', name: 'Smoke Role' } });
+  check('custom role created', custom.status === 201, custom.body);
+
+  const duplicate = await api('/api/roles', { method: 'POST', token, body: { key: 'cashier', name: 'Copy' } });
+  check('duplicate role key refused', duplicate.status === 409, duplicate.body);
+
+  // A live cashier token proves the middleware enforces the permission
+  // catalogue over HTTP, not just in the unit tests.
+  const permCashier = await api('/api/staff', {
+    method: 'POST', token,
+    body: { name: 'Perm Cashier', email: 'perm.cashier@smoke.local', role: 'cashier', password: 'Till4567', pin: '4321' },
+  });
+  const cashierLogin = await api('/api/auth/login', {
+    method: 'POST', body: { email: 'perm.cashier@smoke.local', password: 'Till4567' },
+  });
+  check('cashier can log in', cashierLogin.status === 200, cashierLogin.body);
+  const cashierToken = cashierLogin.body.token;
+  const cashierAllowed = await api('/api/products', { token: cashierToken });
+  check('cashier can read products', cashierAllowed.status === 200, cashierAllowed.body);
+  const cashierDenied = await api('/api/roles', { method: 'POST', token: cashierToken, body: { key: 'x', name: 'X' } });
+  check('cashier cannot create roles', cashierDenied.status === 403, cashierDenied.body);
+
+  await api(`/api/roles/${custom.body.role.id}`, { method: 'DELETE', token });
 
   // --- deleting a location is only safe once it is empty --------------------
   const heldBlock = await api(`/api/branches/${outlet.id}`, { method: 'DELETE', token });

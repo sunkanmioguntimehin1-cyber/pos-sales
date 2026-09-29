@@ -5,28 +5,31 @@ import { useAuthStore } from '@/store/authStore';
 import {
   IconDashboard, IconOrders, IconProducts, IconCategories, IconInventory,
   IconCustomers, IconReports, IconSettings, IconPOS, IconStore, IconUser,
-  IconChevronRight, IconX, IconUpload,
+  IconShield, IconChevronRight, IconX, IconUpload,
 } from '@/components/ui/Icons';
+import { can } from '@/lib/auth/can';
+import type { PermissionKey } from '@/lib/api/roles';
 
 type NavItem =
   | { section: string }
-  | { id: string; label: string; Icon: React.ComponentType<{ size?: number; className?: string }>; live?: boolean };
+  | { id: string; label: string; Icon: React.ComponentType<{ size?: number; className?: string }>; live?: boolean; permission?: PermissionKey };
 
 const nav: NavItem[] = [
   { section: 'Overview' },
   { id: 'dashboard',  label: 'Dashboard',    Icon: IconDashboard },
-  { id: 'pos',        label: 'POS Terminal', Icon: IconPOS, live: true },
-  { id: 'orders',     label: 'Orders',       Icon: IconOrders },
-  { id: 'products',   label: 'Products',     Icon: IconProducts },
-  { id: 'categories', label: 'Categories',   Icon: IconCategories },
+  { id: 'pos',        label: 'POS Terminal', Icon: IconPOS, live: true, permission: 'pos' },
+  { id: 'orders',     label: 'Orders',       Icon: IconOrders, permission: 'orders:view' },
+  { id: 'products',   label: 'Products',     Icon: IconProducts, permission: 'products:view' },
+  { id: 'categories', label: 'Categories',   Icon: IconCategories, permission: 'products:view' },
   { section: 'Operations' },
-  { id: 'inventory',  label: 'Inventory',    Icon: IconInventory },
-  { id: 'transfers',  label: 'Transfers',    Icon: IconUpload },
-  { id: 'customers',  label: 'Customers',    Icon: IconCustomers },
-  { id: 'reports',    label: 'Reports',      Icon: IconReports },
+  { id: 'inventory',  label: 'Inventory',    Icon: IconInventory, permission: 'stock:view' },
+  { id: 'transfers',  label: 'Transfers',    Icon: IconUpload, permission: 'stock:view' },
+  { id: 'customers',  label: 'Customers',    Icon: IconCustomers, permission: 'customers:view' },
+  { id: 'reports',    label: 'Reports',      Icon: IconReports, permission: 'reports:view' },
   { section: 'Configuration' },
-  { id: 'branches',   label: 'Branches',     Icon: IconStore },
-  { id: 'staff',      label: 'Staff',        Icon: IconUser },
+  { id: 'branches',   label: 'Branches',     Icon: IconStore, permission: 'branches:view' },
+  { id: 'staff',      label: 'Staff',        Icon: IconUser, permission: 'staff:view' },
+  { id: 'roles',      label: 'Roles & Permissions', Icon: IconShield, permission: 'staff:view' },
   { id: 'settings',   label: 'Settings',     Icon: IconSettings },
 ];
 
@@ -137,7 +140,7 @@ export function Sidebar({
 
         {/* Navigation */}
         <nav className="scroll-area flex-1 overflow-y-auto px-3 py-3">
-          {nav.map((item, i) => {
+          {nav.filter((item) => 'section' in item || !item.permission || can(user, item.permission)).map((item, i) => {
             if ('section' in item) {
               if (collapsed) {
                 return <div key={i} className="mx-auto my-3 h-px w-8" style={{ backgroundColor: 'var(--border)' }} />;
@@ -220,7 +223,7 @@ export function Sidebar({
             <>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[12.5px] font-semibold">{user?.name || 'Guest user'}</div>
-                <div className="truncate text-[11px] capitalize text-subtle">{user?.role?.replace('_', ' ') || 'Not signed in'}</div>
+                <div className="truncate text-[11px] capitalize text-subtle">{user?.roleName ?? user?.role?.replace('_', ' ') ?? 'Not signed in'}</div>
               </div>
               <button
                 onClick={() => logout.mutate()}

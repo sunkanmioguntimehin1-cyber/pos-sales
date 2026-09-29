@@ -156,9 +156,10 @@ below.
   place new stock is received. A branch id that does not exist is a `400` rather
   than a silent fallback, so nobody ends up at a store they did not choose.
 - **The POS lists only the selected location's staff.** `GET /api/staff?branchId=X`
-  returns everyone assigned to `X` **plus all admins** — admins are not
-  location-bound, so excluding them would leave a till with nobody able to ring up
-  a sale whenever its cashier is away.
+  returns everyone assigned to `X` **plus anyone whose role is not
+  location-bound** — roles with `locationBound: false` work at any branch, so
+  excluding them would leave a till with nobody able to ring up a sale whenever
+  its cashier is away.
 - `backfillStaffBranch()` runs on every boot and gives any staff record with no
   location the head office, so pre-branch records still appear on a till. It only
   touches records where `branchId` is missing, so it never moves anyone who has
@@ -186,8 +187,35 @@ below.
 
 | Method | Path  | Auth | Description |
 | ------ | ----- | ---- | ----------- |
-| POST   | `/login` | public | `{ email, password }` → `{ token, user: { id, email, name, role } }` |
-| GET    | `/me`    | bearer | Same `{ id, email, name, role }` shape as login |
+| POST   | `/login` | public | `{ email, password }` → `{ token, user: { id, email, name, role, roleName, permissions } }` |
+| GET    | `/me`    | bearer | Same shape as login |
+
+The JWT carries the user's `permissions`, so every protected route is one
+signature check with no database query. A permission change takes effect on the
+holder's **next login or `/me`** call, not in already-issued tokens. `login` and
+`/me` also attach `roleName` (the human name of the role key) so the client can
+label the current user without a second request.
+
+### Roles & permissions — `/api/roles`
+
+Roles replace the fixed `admin / manager / cashier` trio. `Staff.role` is a
+**string key** referencing a role document (not a foreign key), which is what
+lets an existing install keep its staff untouched; role details are attached to
+staff responses at read time.
+
+| Method | Path            | Permission    | Description |
+| ------ | --------------- | ------------- | ----------- |
+| GET    | `/`             | `staff:view`  | All roles, each with a `memberCount` of staff assigned. |
+| GET    | `/:roleId`      | `staff:view`  | Single role. |
+| POST   | `/`             | `roles:manage`| `{ key, name, permissions[], locationBound? }`. Duplicate/unknown permissions are `400`. |
+| PUT    | `/:roleId`      | `roles:manage`| Renames/re-permissions. The system Admin is locked (`400`) on key, permissions and location binding; its name is still editable. |
+| DELETE | `/:roleId`      | `roles:manage`| `400` for system roles, `409` while staff are still assigned. |
+
+The three built-ins are seeded on every boot via `ensureRoles()` (upsert, so a
+restart never reverts edits): `admin` (system, every permission, `locationBound:
+false`), `manager` (editable, not location-bound) and `cashier` (editable,
+location-bound). `locationBound: false` means "works at any branch" and is the
+generalisation of the old `role === 'admin'` exemption in the POS staff picker.
 
 ### Store — `/api/store` (bearer)
 
@@ -200,15 +228,17 @@ below.
 
 | Method | Path              | Description |
 | ------ | ----------------- | ----------- |
-| GET    | `/`               | Filters: `role`, `status`, `search`, `branchId`. `branchId` narrows to that location plus admins; `branchId=all` returns everyone. |
-| POST   | `/`               | `name`, `role` required; `email`, `phone`, `password`, `pin`, `status`, `branchId` optional. Password/PIN are bcrypt-hashed. Omitted `branchId` means the head office. |
-| POST   | `/verify-pin`     | `{ staffId, pin }` → `{ success, staff }` |
+| GET    | `/`               | Filters: `role`, `status`, `search`, `branchId`. `branchId` narrows to that location plus non-location-bound roles; `branchId=all` returns everyone. |
+| POST   | `/`               | `name`, `role` required; `email`, `phone`, `password`, `pin`, `status`, `branchId` optional. `role` must be a role key that exists (`400` otherwise; defaults to `cashier` when omitted). Password/PIN are bcrypt-hashed. Omitted `branchId` means the head office. |
+| POST   | `/verify-pin`     | `{ staffId, pin }` → `{ success, staff: { id, name, role, roleName, permissions } }` |
 | GET    | `/:staffId`       | Single staff member (password/PIN hashes stripped). |
-| PUT    | `/:staffId`       | Partial update; send `password`/`pin` to change credentials. Send `branchId` to move someone; omit it to leave their location alone, or send `''` to send them back to the head office. |
+| PUT    | `/:staffId`       | Partial update; send `password`/`pin` to change credentials. Send `role` to change it (validated like create). Send `branchId` to move someone; omit it to leave their location alone, or send `''` to send them back to the head office. |
 | DELETE | `/:staffId`       | |
 
 Every staff response carries `branchId`, plus `branchName`/`branchType` when the
-branch is populated.
+branch is populated, and `roleName`/`roleColor` derived from the role key.
+
+This section requires `staff:view` to read and `staff:manage` to write.
 
 ### Products & categories — `/api/products`
 
@@ -218,16 +248,28 @@ branch is populated.
 | POST   | `/categories`            | `name` required. |
 | PUT    | `/categories/:categoryId`| |
 | DELETE | `/categories/:categoryId`| |
-| GET    | `/`                      | Filters: `category` (**an id**), `search`, `isActive`, `branchId`. With `branchId`, `stock` is that location's quantity; `totalStock` is always the company-wide total. |
-| POST   | `/`                      | `name`, `price` required. `stock` is **opening stock booked into the head office**. |
+| GET    | `/`                      | Filters: `category` (**an id**), `search`, `isActive`, `branchId`. With `branchId`, `stock` is that location's quantity, `totalStock` is always the company-wide total, and `minQuantity` is that branch's shelf target. Without one, `minQuantity` is the product's default threshold. |
+| POST   | `/`                      | `name`, `price` required. `stock` is **opening stock booked into the head office**; the head-office row's `minQuantity` inherits `lowStockThreshold`. |
 | GET    | `/:productId`            | Single product, `categoryId` populated. |
 | PUT    | `/:productId`            | Partial update. A `stock` change is applied at the head office. |
 | DELETE | `/:productId`            | Also removes the product's stock rows. |
-| GET    | `/:productId/stock`      | `{ stockLevels: [{ id, branchId, branchName, branchType, quantity, updatedAt }], total }` |
+| GET    | `/:productId/stock`      | `{ stockLevels: [{ id, branchId, branchName, branchType, quantity, minQuantity, updatedAt }], total }` |
 | POST   | `/:productId/stock`      | `{ adjustment, type: 'set' \| 'adjust', branchId? }` — `set` treats `adjustment` as the absolute new count, `adjust` adds it (negative to remove). `branchId` defaults to the head office. A negative result is rejected. |
+| PUT    | `/:productId/stock/:branchId` | `{ minQuantity }` — sets the target for one product at one location. Upserts so a branch holding zero stock can still plan a shelf. Negative values clamp to `0`. |
+
+**Stock targets.** Every location row (`Stock`) carries its own `minQuantity`,
+so the flagship store can keep 40 units of something a kiosk needs 5 of. A new
+row inherits the product's `lowStockThreshold` as its default; `backfillBranchTargets()`
+on boot gives any pre-feature row the same default so nothing is flagged
+Critical before a target is set. `minQuantity: 0` on a row is a deliberate
+"never auto-flag" choice, which is why the backfill only touches rows where the
+field is absent.
 
 `/categories` is registered before `/:productId` so it is not shadowed by the
 dynamic route.
+
+Products reads require `products:view` (stock breakdowns additionally `stock:view`);
+writes require `products:manage`; stock moves and targets require `stock:manage`.
 
 ### Orders — `/api/orders`
 

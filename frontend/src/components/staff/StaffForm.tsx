@@ -1,6 +1,6 @@
 'use client';
 import { Controller, UseFormReturn } from 'react-hook-form';
-import { useBranches } from '@/lib/hooks';
+import { useBranches, useRoles } from '@/lib/hooks';
 import { StaffFormData } from './types';
 
 interface StaffFormProps {
@@ -18,6 +18,7 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
   // Only needed for the location dropdown. The backend guarantees a head
   // office exists, so the list is never empty once it loads.
   const { data: branches = [], isLoading: isLoadingBranches } = useBranches();
+  const { data: roles = [], isLoading: isLoadingRoles } = useRoles();
 
   return (
     <div className="flex flex-col gap-3">
@@ -72,14 +73,19 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
         <Controller
           name="role"
           control={control}
+          rules={{ required: 'Role is required' }}
           render={({ field }) => (
-            <select {...field} className={selectCls}>
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-              <option value="cashier">Cashier</option>
+            <select {...field} className={selectCls} disabled={isLoadingRoles}>
+              {isLoadingRoles && <option value="">Loading roles...</option>}
+              {roles.map((role) => (
+                <option key={role.id} value={role.key}>
+                  {role.name}
+                </option>
+              ))}
             </select>
           )}
         />
+        {errors.role && <span className="text-[11px] text-red-400 mt-1">{errors.role.message}</span>}
       </div>
 
       <div>
@@ -102,7 +108,7 @@ export function StaffForm({ control, errors, isEdit }: StaffFormProps) {
               <span className="text-[11px] text-subtle mt-1 block">
                 {field.value
                   ? 'This person can only ring up sales at this location.'
-                  : 'This person will be filed at the head office. Admins can work at any location.'}
+                  : 'This person will be filed at the head office. People whose role is not tied to a branch can work at any location.'}
               </span>
             </>
           )}

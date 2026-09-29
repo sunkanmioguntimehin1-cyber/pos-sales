@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { Staff } from '../models/staff.model.js';
 import { Branch } from '../models/branch.model.js';
 import { getHeadOfficeId } from '../services/stock.service.js';
+import { getRoleByKey, getRolesMap, getNonLocationBoundRoleKeys } from '../services/role.service.js';
 import { respondWithError } from '../utils/respondWithError.js';
 
 /**
@@ -11,11 +12,15 @@ import { respondWithError } from '../utils/respondWithError.js';
  * depending on whether the caller selected it, so it is normalised here rather
  * than at each call site. Staff with no branchId (a database that has not been
  * backfilled yet) report null rather than pretending they work everywhere.
+ *
+ * `rolesMap` also attaches the display name and badge colour for the role key
+ * stored on the record, so the whole staff list is labelled in one pass.
  */
-function toPublicStaff(s) {
+function toPublicStaff(s, rolesMap) {
   const branch = s.branchId && typeof s.branchId === 'object' && s.branchId.name
     ? s.branchId
     : null;
+  const role = s.role ? rolesMap.get(s.role) : undefined;
 
   return {
     id: String(s._id),
@@ -23,6 +28,8 @@ function toPublicStaff(s) {
     email: s.email,
     phone: s.phone,
     role: s.role,
+    roleName: role?.name ?? s.role,
+    roleColor: role?.color ?? 'bg-[var(--input-bg)] text-muted',
     status: s.status,
     branchId: branch ? branch.id : (s.branchId ? String(s.branchId) : null),
     branchName: branch ? branch.name : undefined,
@@ -46,6 +53,19 @@ async function resolveBranchId(requested) {
   return branch._id;
 }
 
+/**
+ * Resolves a requested role key, or fails.
+ *
+ * The schema defaults to 'cashier' when the field is omitted, but an explicit
+ * unknown key must be a client error rather than a doc with a role nobody has
+ * permissions for.
+ */
+async function resolveRoleKey(requested) {
+  const role = await getRoleByKey(requested || 'cashier');
+  if (!role) return { error: `Unknown role "${requested}"` };
+  return role.key;
+}
+
 export async function getStaff(req, res) {
   try {
     const { role, status, search, branchId } = req.query;
@@ -61,10 +81,12 @@ export async function getStaff(req, res) {
     }
 
     if (branchId && branchId !== 'all') {
-      // Staff assigned to this location, plus admins. Admins are not
-      // location-bound, so excluding them would leave a till with nobody able
-      // to ring up a sale whenever its assigned cashier is away.
-      filter.$or = [{ branchId }, { role: 'admin' }];
+      // Staff assigned to this location, plus anyone whose role is not
+      // location-bound (one role can say "works anywhere" — the old hard-coded
+      // `role === 'admin'` exemption generalised). Excluding them would leave a
+      // till with nobody able to ring up a sale whenever its cashier is away.
+      const exemptKeys = await getNonLocationBoundRoleKeys();
+      filter.$or = [{ branchId }, { role: { $in: exemptKeys } }];
     }
 
     if (search) {
@@ -78,11 +100,12 @@ export async function getStaff(req, res) {
       filter.$and = [...(filter.$and ?? []), { $or: nameOrEmail }];
     }
 
+    const rolesMap = await getRolesMap();
     const staff = await Staff.find(filter)
       .populate('branchId', 'name type')
       .sort({ createdAt: -1 });
 
-    res.json({ staff: staff.map(toPublicStaff) });
+    res.json({ staff: staff.map((member) => toPublicStaff(member, rolesMap)) });
   } catch (error) {
     respondWithError(res, error, { context: 'Get staff error', message: 'Failed to get staff' });
   }
@@ -99,7 +122,8 @@ export async function getStaffMember(req, res) {
       return;
     }
 
-    res.json({ staff: toPublicStaff(staff) });
+    const rolesMap = await getRolesMap();
+    res.json({ staff: toPublicStaff(staff, rolesMap) });
   } catch (error) {
     respondWithError(res, error, { context: 'Get staff member error', message: 'Failed to get staff' });
   }
@@ -122,6 +146,12 @@ export async function createStaff(req, res) {
       return;
     }
 
+    const resolvedRole = await resolveRoleKey(role);
+    if (resolvedRole.error) {
+      res.status(400).json({ error: resolvedRole.error });
+      return;
+    }
+
     if (email) {
       const existing = await Staff.findOne({ email: email.toLowerCase() });
       if (existing) {
@@ -136,7 +166,7 @@ export async function createStaff(req, res) {
       phone,
       passwordHash: password ? await bcrypt.hash(password, 10) : undefined,
       pinHash: pin ? await bcrypt.hash(pin, 10) : undefined,
-      role,
+      role: resolvedRole,
       status: status || 'active',
       branchId: resolvedBranch,
     });
@@ -144,7 +174,8 @@ export async function createStaff(req, res) {
     await staff.save();
     await staff.populate('branchId', 'name type');
 
-    res.status(201).json({ staff: toPublicStaff(staff) });
+    const rolesMap = await getRolesMap();
+    res.status(201).json({ staff: toPublicStaff(staff, rolesMap) });
   } catch (error) {
     respondWithError(res, error, { context: 'Create staff error', message: 'Failed to create staff' });
   }
@@ -172,10 +203,19 @@ export async function updateStaff(req, res) {
       }
     }
 
+    let resolvedRole;
+    if (role !== undefined && role !== staff.role) {
+      resolvedRole = await resolveRoleKey(role);
+      if (resolvedRole.error) {
+        res.status(400).json({ error: resolvedRole.error });
+        return;
+      }
+    }
+
     if (name) staff.name = name;
     if (email !== undefined) staff.email = email?.toLowerCase();
     if (phone !== undefined) staff.phone = phone;
-    if (role) staff.role = role;
+    if (resolvedRole) staff.role = resolvedRole;
     if (status) staff.status = status;
     if (password) staff.passwordHash = await bcrypt.hash(password, 10);
     if (pin) staff.pinHash = await bcrypt.hash(pin, 10);
@@ -184,7 +224,8 @@ export async function updateStaff(req, res) {
     await staff.save();
     await staff.populate('branchId', 'name type');
 
-    res.json({ staff: toPublicStaff(staff) });
+    const rolesMap = await getRolesMap();
+    res.json({ staff: toPublicStaff(staff, rolesMap) });
   } catch (error) {
     respondWithError(res, error, { context: 'Update staff error', message: 'Failed to update staff' });
   }
@@ -232,12 +273,16 @@ export async function verifyPin(req, res) {
       return;
     }
 
+    const role = await getRoleByKey(staff.role);
+
     res.json({
       success: true,
       staff: {
-        id: staff._id,
+        id: String(staff._id),
         name: staff.name,
         role: staff.role,
+        roleName: role?.name ?? staff.role,
+        permissions: role?.permissions ?? [],
       },
     });
   } catch (error) {

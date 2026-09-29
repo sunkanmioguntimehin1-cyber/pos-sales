@@ -5,6 +5,7 @@ import { Branch } from '../src/models/branch.model.js';
 import { Product } from '../src/models/product.model.js';
 import { Staff } from '../src/models/staff.model.js';
 import { Stock } from '../src/models/stock.model.js';
+import { ensureRoles } from '../src/services/role.service.js';
 import { setLocationStock, backfillStaffBranch } from '../src/services/stock.service.js';
 import { getStaff, createStaff, updateStaff } from '../src/controllers/staff.controller.js';
 import { deleteBranch } from '../src/controllers/branches.controller.js';
@@ -20,9 +21,18 @@ function findById(staff, id) {
 }
 
 describe('staff branch assignment', () => {
-  before(connectTestDB);
+  before(async () => {
+    await connectTestDB();
+    // The controllers validate/attach roles, so the built-in roles must exist.
+    await ensureRoles();
+  });
   after(disconnectTestDB);
-  beforeEach(clearAll);
+  beforeEach(async () => {
+    await clearAll();
+    // clearAll wipes the seeded roles too, and createStaff validates against
+    // them, so re-seed before every test.
+    await ensureRoles();
+  });
 
   it('files a new staff member at the head office when no branch is named', async () => {
     const { headOffice } = await seedBranches();
@@ -87,9 +97,15 @@ describe('staff branch assignment', () => {
 });
 
 describe('getStaff ?branchId', () => {
-  before(connectTestDB);
+  before(async () => {
+    await connectTestDB();
+    await ensureRoles();
+  });
   after(disconnectTestDB);
-  beforeEach(clearAll);
+  beforeEach(async () => {
+    await clearAll();
+    await ensureRoles();
+  });
 
   it('returns only that location\'s staff, plus admins', async () => {
     const { headOffice, outlet } = await seedBranches();

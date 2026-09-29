@@ -14,6 +14,16 @@ const stockSchema = new Schema(
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
     quantity: { type: Number, default: 0, min: 0 },
+    /**
+     * This location's minimum/target stock level for the product — the level
+     * the Inventory screen compares a branch's `quantity` against before
+     * flagging it Low or Critical. Lives on the per-branch row (not on the
+     * product) because each branch can legitimately want a different shelf:
+     * the flagship store may keep 40 units of a phone case while a kiosk needs
+     * 5. Product.lowStockThreshold remains the *default* target for any row
+     * created without an explicit one.
+     */
+    minQuantity: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

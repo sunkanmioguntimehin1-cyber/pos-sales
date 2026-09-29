@@ -20,6 +20,7 @@ const PAGE_META: Record<string, [string, string]> = {
   reports:    ['Reports',      'Sales analytics and performance metrics'],
   branches:   ['Branches',     'Manage store locations and branches'],
   staff:      ['Staff',        'Manage staff members and roles'],
+  roles:      ['Roles & Permissions', 'Define custom roles and what they can access'],
   settings:   ['Settings',     'Store configuration and preferences'],
 };
 

@@ -9,6 +9,7 @@ import {
   useOrders, useUpdateOrderStatus, Order,
   getOrderCustomerName, getOrderStaffName, getOrderBranchName,
 } from '@/lib/hooks';
+import { useCan } from '@/lib/auth/can';
 
 const selectCls = "h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none";
 
@@ -73,6 +74,8 @@ export function OrdersScreen() {
   const [dateF, setDateF]     = useState<DateRangeKey | 'All'>('All');
   const [pendingAction, setPendingAction] = useState<{ order: Order; status: Order['status'] } | null>(null);
   const updateStatus = useUpdateOrderStatus();
+  const { has } = useCan();
+  const canManageOrders = has('orders:manage');
 
   const { startDate, endDate } = dateF === 'All'
     ? { startDate: undefined, endDate: undefined }
@@ -201,7 +204,7 @@ export function OrdersScreen() {
                         </button>
                         {/* Only an order that actually moved stock can be
                             reversed; re-reversing would double-count. */}
-                        {(o.status === 'completed' || o.status === 'pending') &&
+                        {(o.status === 'completed' || o.status === 'pending') && canManageOrders &&
                           RESTOCKING_ACTIONS.map(action => (
                             <button
                               key={action.value}

@@ -3,7 +3,11 @@ export interface Staff {
   name: string;
   email?: string;
   phone?: string;
-  role: 'admin' | 'manager' | 'cashier';
+  /** The role key — a string naming a role in /api/roles, e.g. 'floor-supervisor'. */
+  role: string;
+  /** Display name + badge colour for the role, attached at read time by the backend. */
+  roleName?: string;
+  roleColor?: string;
   status: 'active' | 'inactive';
   branchId: string | null;
   branchName?: string;
@@ -14,7 +18,7 @@ export interface Staff {
 export interface StaffFormData {
   name: string;
   email?: string;
-  role: 'admin' | 'manager' | 'cashier';
+  role: string;
   phone?: string;
   password?: string;
   pin?: string;

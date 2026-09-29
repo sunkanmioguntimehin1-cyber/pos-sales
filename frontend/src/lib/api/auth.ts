@@ -1,4 +1,5 @@
 import api from './axios';
+import { PermissionKey } from './roles';
 
 export interface LoginData {
   email: string;
@@ -9,7 +10,15 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'cashier';
+  /** The role key (e.g. 'cashier') — see `roleName` for the display name. */
+  role: string;
+  /** Human name of the role key, attached at read time by the backend. */
+  roleName?: string;
+  /**
+   * The permissions baked into the JWT at login. `requirePermission` on the
+   * backend validates with the same list, so the UI gates on a signed fact.
+   */
+  permissions?: PermissionKey[];
 }
 
 export interface LoginResponse {

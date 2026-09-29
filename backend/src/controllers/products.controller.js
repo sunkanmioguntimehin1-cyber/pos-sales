@@ -35,7 +35,9 @@ export async function getProducts(req, res) {
 
     // `?branchId=` re-scopes the returned `stock` to that location without
     // touching the stored total, so the POS can show what is sellable at the
-    // selected till rather than the business-wide figure.
+    // selected till rather than the business-wide figure. It also swaps in the
+    // location's minimum target, so the Inventory screen's Low/Critical flags
+    // compare against that shelf's own level rather than the product default.
     if (branchId) {
       const branch = await Branch.findById(branchId).select('name type').lean();
       if (!branch) {
@@ -46,15 +48,17 @@ export async function getProducts(req, res) {
       const rows = await Stock.find({
         productId: { $in: products.map((product) => product._id) },
         branchId: branch._id,
-      }).select('productId quantity').lean();
+      }).select('productId quantity minQuantity').lean();
 
-      const byProduct = new Map(rows.map((row) => [String(row.productId), row.quantity]));
+      const byProduct = new Map(rows.map((row) => [String(row.productId), row]));
       for (const product of products) {
         // Assigning to the document only affects the response — nothing here
         // is saved, so the denormalised total stays intact. `totalStock` is
-        // carried alongside so the UI can show "3 here / 40 company-wide".
+        // carried alongside so the UI can show "3 here / 40 company-wide", and
+        // `minQuantity` is the location's shelf target for the same request.
         product.$locals.totalStock = product.stock;
-        product.stock = byProduct.get(String(product._id)) ?? 0;
+        product.stock = byProduct.get(String(product._id))?.quantity ?? 0;
+        product.$locals.minQuantity = byProduct.get(String(product._id))?.minQuantity ?? product.lowStockThreshold ?? 0;
       }
     }
 
@@ -116,8 +120,11 @@ export async function createProduct(req, res) {
 
     // New stock is always booked into the head office. Writing it here rather
     // than on the product document is what lets a later transfer move the same
-    // units to a branch without inventing stock.
-    await setLocationStock(product._id, headOfficeId, openingStock);
+    // units to a branch without inventing stock. The HQ row inherits the
+    // product threshold as its minimum target.
+    await setLocationStock(product._id, headOfficeId, openingStock, {
+      minQuantity: lowStockThreshold || 10,
+    });
 
     await product.populate('categoryId', 'name color');
 
@@ -200,6 +207,23 @@ export async function deleteProduct(req, res) {
   }
 }
 
+/** Maps a product's location rows into the API breakdown shape. */
+function toStockBreakdown(stockLevels) {
+  const total = stockLevels.reduce((sum, level) => sum + level.quantity, 0);
+  return {
+    stockLevels: stockLevels.map((level) => ({
+      id: String(level._id),
+      branchId: level.branchId?._id ? String(level.branchId._id) : level.branchId,
+      branchName: level.branchId?.name,
+      branchType: level.branchId?.type,
+      quantity: level.quantity,
+      minQuantity: level.minQuantity ?? 0,
+      updatedAt: level.updatedAt,
+    })),
+    total,
+  };
+}
+
 /** Per-location breakdown of where a product's stock is held. */
 export async function getProductStock(req, res) {
   try {
@@ -211,22 +235,52 @@ export async function getProductStock(req, res) {
       return;
     }
 
-    const stockLevels = await getProductStockLevels(productId);
-    const total = stockLevels.reduce((sum, level) => sum + level.quantity, 0);
-
-    res.json({
-      stockLevels: stockLevels.map((level) => ({
-        id: String(level._id),
-        branchId: level.branchId?._id ? String(level.branchId._id) : level.branchId,
-        branchName: level.branchId?.name,
-        branchType: level.branchId?.type,
-        quantity: level.quantity,
-        updatedAt: level.updatedAt,
-      })),
-      total,
-    });
+    res.json(toStockBreakdown(await getProductStockLevels(productId)));
   } catch (error) {
     respondWithError(res, error, { context: 'Get product stock error', message: 'Failed to get product stock' });
+  }
+}
+
+/**
+ * Sets the minimum/target stock level for one product at one location.
+ *
+ * A separate responsibility from moving units: a store can plan a shelf (say
+ * "keep 40 phone cases at Accra Mall") before the first units ever arrive.
+ * Upserts so a target can be set on a branch holding zero stock.
+ */
+export async function setProductStockTarget(req, res) {
+  try {
+    const { productId, branchId } = req.params;
+    const { minQuantity } = req.body;
+
+    if (minQuantity === undefined) {
+      res.status(400).json({ error: 'minQuantity is required' });
+      return;
+    }
+    const safe = Math.max(0, Number(minQuantity) || 0);
+
+    const [product, branch] = await Promise.all([
+      Product.findById(productId).select('name sku').lean(),
+      Branch.findById(branchId).select('_id').lean(),
+    ]);
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    if (!branch) {
+      res.status(404).json({ error: 'Branch not found' });
+      return;
+    }
+
+    await Stock.findOneAndUpdate(
+      { productId, branchId },
+      { $set: { minQuantity: safe }, $setOnInsert: { quantity: 0 } },
+      { upsert: true, new: true }
+    );
+
+    res.json(toStockBreakdown(await getProductStockLevels(productId)));
+  } catch (error) {
+    respondWithError(res, error, { context: 'Set stock target error', message: 'Failed to set stock target' });
   }
 }
 

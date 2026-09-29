@@ -35,6 +35,11 @@ export interface StockAdjustmentFormData {
   type: StockAdjustmentType | '';
   quantity: string;
   note: string;
+  /**
+   * Optional: when set, this becomes the selected location's reorder target
+   * (its per-branch `minQuantity`) alongside the quantity adjustment.
+   */
+  minQuantity?: string;
 }
 
 /**

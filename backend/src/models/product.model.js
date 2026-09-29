@@ -37,6 +37,19 @@ productSchema.virtual('totalStock').get(function getTotalStock() {
   return this.$locals.totalStock ?? this.stock ?? 0;
 });
 
+/**
+ * This response's stock baseline for restock flags.
+ *
+ * GET /api/products?branchId=X swaps in that location's per-shelf minimum, so
+ * the Inventory screen compares against the branch's own target. Without a
+ * branch the company default (the product threshold) applies. Like totalStock,
+ * the value is stashed in $locals — it is a view-specific number, never
+ * persisted onto the product document.
+ */
+productSchema.virtual('minQuantity').get(function getMinQuantity() {
+  return this.$locals.minQuantity ?? this.lowStockThreshold ?? 0;
+});
+
 applyIdVirtual(productSchema);
 
 export const Product = mongoose.model('Product', productSchema);

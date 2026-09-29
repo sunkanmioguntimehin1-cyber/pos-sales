@@ -2,6 +2,10 @@ export { default as api } from './axios';
 export { authApi, type LoginData, type LoginResponse, type User } from './auth';
 export { staffApi, type Staff, type CreateStaffData, type UpdateStaffData } from './staff';
 export {
+  rolesApi, type Role, type RoleSummary, type CreateRoleData, type UpdateRoleData, type PermissionKey,
+  type PermissionDefinition, ALL_PERMISSIONS, ALL_PERMISSION_KEYS, PERMISSION_GROUPS, permissionLabel,
+} from './roles';
+export {
   productsApi, type Product, type Category, type CreateProductData, type PopulatedCategory,
   type ProductStockLevel, type ProductStockBreakdown,
   getProductCategoryName, getProductCategoryId,

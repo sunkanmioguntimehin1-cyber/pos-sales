@@ -1,1 +1,1 @@
-export { authMiddleware, requireRole } from './auth.middleware.js';
+export { authMiddleware, requirePermission, requireRole } from './auth.middleware.js';

@@ -11,6 +11,7 @@ import {
   getProductCategoryName,
 } from '@/lib/hooks';
 import { CreateProductData } from '@/lib/api/products';
+import { useCan } from '@/lib/auth/can';
 
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 
@@ -78,6 +79,8 @@ export function ProductsScreen() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const { has } = useCan();
+  const canManage = has('products:manage');
 
   const filteredProducts = products.filter(p =>
     (statusFilter === ALL || getProductStatus(p) === statusFilter.toLowerCase()) &&
@@ -194,12 +197,14 @@ export function ProductsScreen() {
           <button className="h-9 flex items-center gap-1.5 px-3.5 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] hover:bg-[var(--input-bg)] rounded-lg text-[13px] font-semibold transition-all">
             <IconDownload size={12} /> Export
           </button>
-          <button 
-            onClick={() => setIsAddModalOpen(true)} 
-            className="h-9 flex items-center gap-1.5 px-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
-          >
-            <IconPlus size={12} /> Add Product
-          </button>
+          {canManage && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="h-9 flex items-center gap-1.5 px-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
+            >
+              <IconPlus size={12} /> Add Product
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -245,10 +250,12 @@ export function ProductsScreen() {
                     <td className={`px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums ${p.stock === 0 ? 'text-red-400' : p.stock < (p.lowStockThreshold || 10) ? 'text-amber-400' : 'text-[var(--text)]'}`}>{p.stock}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">{statusBadge(getProductStatus(p))}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]" onClick={e => e.stopPropagation()}>
-                      <div className="flex gap-1">
-                        <button onClick={() => openEditModal(p)} className="w-7 h-7 flex items-center justify-center rounded-md bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] transition-all"><IconEdit size={11} /></button>
-                        <button onClick={() => openDeleteConfirm(p)} className="w-7 h-7 flex items-center justify-center rounded-md bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-red-400 transition-all"><IconTrash size={11} /></button>
-                      </div>
+                      {canManage && (
+                        <div className="flex gap-1">
+                          <button onClick={() => openEditModal(p)} className="w-7 h-7 flex items-center justify-center rounded-md bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] transition-all"><IconEdit size={11} /></button>
+                          <button onClick={() => openDeleteConfirm(p)} className="w-7 h-7 flex items-center justify-center rounded-md bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-red-400 transition-all"><IconTrash size={11} /></button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

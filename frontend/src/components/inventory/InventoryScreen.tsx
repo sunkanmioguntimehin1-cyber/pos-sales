@@ -7,7 +7,7 @@ import { StockAdjustmentForm } from './StockAdjustmentForm';
 import { AddInventoryModal } from './AddInventoryModal';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { StockHistoryPanel } from './StockHistoryPanel';
-import { useProducts, useAdjustStock, useCreateProduct, useBranches, getProductCategoryName } from '@/lib/hooks';
+import { useProducts, useAdjustStock, useSetStockTarget, useCreateProduct, useBranches, getProductCategoryName } from '@/lib/hooks';
 // A `<select>` needs a value, so "no location" is a sentinel rather than ''.
 import { ALL_LOCATIONS_SENTINEL as ALL_LOCATIONS, toBranchQueryId } from '@/lib/utils/branchQuery';
 
@@ -27,6 +27,7 @@ export function InventoryScreen() {
   // adjustment from this screen would hit.
   const { data: products = [], isLoading } = useProducts({ branchId });
   const adjustStock = useAdjustStock();
+  const setStockTarget = useSetStockTarget();
   const createProduct = useCreateProduct();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -40,7 +41,10 @@ export function InventoryScreen() {
   const inventory: InventoryItem[] = useMemo(() => {
     return products.map(p => {
       const onHand = p.stock || 0;
-      const reorder = p.lowStockThreshold || 0;
+      // The reorder point is the selected location's per-branch target when a
+      // location is chosen (the API scopes `minQuantity` along with `stock`),
+      // and the company-wide default otherwise.
+      const reorder = p.minQuantity ?? p.lowStockThreshold ?? 0;
       let status: InventoryItem['status'] = 'ok';
       if (onHand === 0) status = 'out';
       else if (onHand <= reorder * 0.25) status = 'critical';
@@ -101,6 +105,17 @@ export function InventoryScreen() {
       { productId: target.id, adjustment, type, branchId: selectedBranch?.id },
       { onSettled: () => setIsAdjustPanelOpen(false) }
     );
+
+    // The form doubles as the place to set this location's reorder target for
+    // the product. It runs alongside the adjustment so a restock lands with the
+    // new threshold already in place.
+    if (data.minQuantity && selectedBranch) {
+      setStockTarget.mutate({
+        productId: target.id,
+        branchId: selectedBranch.id,
+        minQuantity: parseInt(data.minQuantity, 10),
+      });
+    }
   };
 
   /** "Add Inventory" creates a real product; fields with no schema column are not collected. */

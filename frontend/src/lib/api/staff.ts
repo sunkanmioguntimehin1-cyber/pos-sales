@@ -5,7 +5,13 @@ export interface Staff {
   name: string;
   email?: string;
   phone?: string;
-  role: 'admin' | 'manager' | 'cashier';
+  /**
+   * The role key stored on the record — a string naming a role in /api/roles
+   * (e.g. 'cashier'), not a foreign key. See `roleName` for the display name.
+   */
+  role: string;
+  roleName?: string;
+  roleColor?: string;
   status: 'active' | 'inactive';
   /**
    * The location this person works at. `null` on a database that predates
@@ -25,7 +31,8 @@ export interface CreateStaffData {
   phone?: string;
   password?: string;
   pin?: string;
-  role: 'admin' | 'manager' | 'cashier';
+  /** A role key that must exist — the backend validates it against /api/roles. */
+  role: string;
   status?: 'active' | 'inactive';
   /** Omit to file this person at the head office. */
   branchId?: string;

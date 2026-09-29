@@ -7,10 +7,14 @@ import { EditStaffModal } from './EditStaffModal';
 import { ViewStaffPanel } from './ViewStaffPanel';
 import { DeleteStaffModal } from './DeleteStaffModal';
 import { SkeletonTable } from '@/components/ui/Skeleton';
-import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff, Staff } from '@/lib/hooks';
+import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff, useRoles, Staff } from '@/lib/hooks';
+import { useCan } from '@/lib/auth/can';
 
 const selectCls = "w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-muted text-[13px] outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer pr-7 bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748B%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-no-repeat bg-[position:right_10px_center]";
 
+// Fallbacks only: the backend now attaches `roleName`/`roleColor` to every
+// staff response, so the badge below prefers those and these maps exist purely
+// for a still-cached or older response.
 const roleColors: Record<string, string> = {
   admin: 'bg-red-500/15 text-red-400',
   manager: 'bg-blue-500/15 text-blue-400',
@@ -23,6 +27,13 @@ const roleLabels: Record<string, string> = {
   cashier: 'Cashier',
 };
 
+function roleBadge(member: Staff) {
+  return {
+    className: member.roleColor ?? roleColors[member.role] ?? 'bg-blue-500/15 text-blue-400',
+    label: member.roleName ?? roleLabels[member.role] ?? member.role,
+  };
+}
+
 export function StaffScreen() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -33,20 +44,23 @@ export function StaffScreen() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [viewPanelStaff, setViewPanelStaff] = useState<Staff | null>(null);
 
+  const { has } = useCan();
+  const canManage = has('staff:manage');
+
   const { data: staff = [], isLoading } = useStaff({
     role: roleFilter !== 'All' ? roleFilter : undefined,
     status: statusFilter !== 'All' ? statusFilter : undefined,
     search: search || undefined,
   });
+  const { data: roles = [] } = useRoles();
 
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
 
   const activeCount = useMemo(() => staff.filter(s => s.status === 'active').length, [staff]);
-  const adminCount = useMemo(() => staff.filter(s => s.role === 'admin').length, [staff]);
-  const managerCount = useMemo(() => staff.filter(s => s.role === 'manager').length, [staff]);
-  const cashierCount = useMemo(() => staff.filter(s => s.role === 'cashier').length, [staff]);
+  const inactiveCount = useMemo(() => staff.filter(s => s.status === 'inactive').length, [staff]);
+  const rolesInUse = useMemo(() => roles.filter(role => role.memberCount > 0).length, [roles]);
 
   const filteredStaff = useMemo(() => {
     return staff.filter(member => {
@@ -109,12 +123,12 @@ export function StaffScreen() {
           <div className="text-[26px] font-extrabold text-emerald-400">{isLoading ? '...' : activeCount}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
-          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Admins</div>
-          <div className="text-[26px] font-extrabold text-red-400">{isLoading ? '...' : adminCount}</div>
+          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Inactive</div>
+          <div className="text-[26px] font-extrabold text-muted">{isLoading ? '...' : inactiveCount}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
-          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Cashiers</div>
-          <div className="text-[26px] font-extrabold text-muted">{isLoading ? '...' : cashierCount}</div>
+          <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Roles In Use</div>
+          <div className="text-[26px] font-extrabold text-blue-400">{isLoading ? '...' : rolesInUse}</div>
         </div>
       </div>
 
@@ -133,21 +147,23 @@ export function StaffScreen() {
           </div>
           <select className={selectCls} value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
             <option value="All">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="cashier">Cashier</option>
+            {roles.map(role => (
+              <option key={role.id} value={role.key}>{role.name}</option>
+            ))}
           </select>
           <select className={selectCls} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="All">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="h-9 flex items-center gap-1.5 px-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
-          >
-            <IconPlus size={12} /> Add Staff
-          </button>
+          {canManage && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="h-9 flex items-center gap-1.5 px-3.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
+            >
+              <IconPlus size={12} /> Add Staff
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -179,8 +195,8 @@ export function StaffScreen() {
                     </td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)] text-[12px] text-muted">{member.email || '-'}</td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColors[member.role]}`}>
-                        {roleLabels[member.role]}
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${roleBadge(member).className}`}>
+                        {roleBadge(member).label}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 border-b border-[var(--border)]">
@@ -211,26 +227,30 @@ export function StaffScreen() {
                         >
                           <IconEye size={14} />
                         </button>
-                        <button
-                          onClick={() => {
-                            setSelectedStaff(member);
-                            setIsEditModalOpen(true);
-                          }}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
-                          title="Edit Staff"
-                        >
-                          <IconEdit size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedStaff(member);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
-                          title="Delete Staff"
-                        >
-                          <IconTrash size={14} />
-                        </button>
+                        {canManage && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedStaff(member);
+                                setIsEditModalOpen(true);
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                              title="Edit Staff"
+                            >
+                              <IconEdit size={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedStaff(member);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
+                              title="Delete Staff"
+                            >
+                              <IconTrash size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
