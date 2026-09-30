@@ -1,15 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { ordersApi, Order, CreateOrderData } from '@/lib/api';
+import { toBranchQueryId } from '@/lib/utils/branchQuery';
 
 export type { Order, CreateOrderData } from '@/lib/api/orders';
 export { getOrderCustomerName, getOrderStaffName, getOrderBranchName } from '@/lib/api/orders';
 
-export function useOrders(filters?: { status?: string; startDate?: string; endDate?: string }) {
+export function useOrders(filters?: { status?: string; branchId?: string; startDate?: string; endDate?: string; enabled?: boolean }) {
+  // `enabled` only controls whether the query runs (used by the Branch Details
+  // panel) and is stripped so it never becomes an API parameter.
+  const { enabled = true, ...query } = filters || {};
+  // The Branch Details panel always passes a real id, but the same "all"
+  // sentinel guard applies here so a UI value can never be cast to an ObjectId.
+  const branchId = toBranchQueryId(query.branchId);
+
   return useQuery({
-    queryKey: ['orders', filters],
-    queryFn: () => ordersApi.getAll(filters),
+    queryKey: ['orders', query],
+    queryFn: () => ordersApi.getAll({ ...query, branchId }),
     staleTime: 30 * 1000,
+    enabled,
   });
 }
 

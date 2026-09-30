@@ -10,11 +10,16 @@ export { getProductCategoryName, getProductCategoryId } from '@/lib/api/products
 const PRODUCTS = ['products'] as const;
 const CATEGORIES = ['categories'] as const;
 
-export function useProducts(filters?: { category?: string; search?: string; isActive?: boolean; branchId?: string }) {
+export function useProducts(filters?: { category?: string; search?: string; isActive?: boolean; branchId?: string; enabled?: boolean }) {
+  // `enabled` only controls whether the query runs (used by the Branch Details
+  // panel) and is stripped so it never becomes an API parameter.
+  const { enabled = true, ...query } = filters || {};
+
   return useQuery({
-    queryKey: ['products', filters],
-    queryFn: () => productsApi.getAll(filters),
+    queryKey: ['products', query],
+    queryFn: () => productsApi.getAll(query),
     staleTime: 60 * 1000,
+    enabled,
   });
 }
 

@@ -8,16 +8,21 @@ export type { Staff } from '@/lib/api/staff';
 
 const STAFF = ['staff'] as const;
 
-export function useStaff(filters?: { role?: string; status?: string; search?: string; branchId?: string }) {
+export function useStaff(filters?: { role?: string; status?: string; search?: string; branchId?: string; enabled?: boolean }) {
+  // `enabled` only controls whether the query runs (used by the Branch Details
+  // panel, which may lack the permission to fetch a section). It must not leak
+  // into the API call.
+  const { enabled = true, ...query } = filters || {};
   // The sentinel must not reach the API — the backend would try to cast it to
   // an ObjectId. Note the query key keeps the raw filters so a caller's cached
   // entry is keyed on exactly what it asked for.
-  const branchId = toBranchQueryId(filters?.branchId);
+  const branchId = toBranchQueryId(query.branchId);
 
   return useQuery({
-    queryKey: ['staff', filters],
-    queryFn: () => staffApi.getAll({ ...filters, branchId }),
+    queryKey: ['staff', query],
+    queryFn: () => staffApi.getAll({ ...query, branchId }),
     staleTime: 60 * 1000,
+    enabled,
   });
 }
 

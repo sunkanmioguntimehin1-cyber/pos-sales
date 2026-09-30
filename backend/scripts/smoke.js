@@ -165,6 +165,11 @@ async function main() {
   check('order created at the outlet', orderRes.status === 201, orderRes.body);
   const order = orderRes.body.order;
 
+  const outletOrders = await api(`/api/orders?branchId=${outlet.id}`, { token });
+  check('orders filter by branch', outletOrders.body.orders.length === 1 && outletOrders.body.orders[0].id === order.id, outletOrders.body);
+  const allOrders = await api('/api/orders', { token });
+  check('unfiltered orders list still sees everything', allOrders.body.orders.some((o) => o.id === order.id), allOrders.body);
+
   const afterOrder = await api(`/api/products/${product.id}/stock`, { token });
   check('outlet decremented to 7', afterOrder.body.stockLevels.find((l) => l.branchId === outlet.id)?.quantity === 7);
   check('head office untouched by the sale', afterOrder.body.stockLevels.find((l) => l.branchId === headOffice.id)?.quantity === 15);

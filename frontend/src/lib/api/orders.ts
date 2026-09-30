@@ -75,9 +75,10 @@ export function getOrderBranchName(order: Pick<Order, 'branchId'>): string | und
 }
 
 export const ordersApi = {
-  getAll: (params?: { status?: string; startDate?: string; endDate?: string }) => {
+  getAll: (params?: { status?: string; branchId?: string; startDate?: string; endDate?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set('status', params.status);
+    if (params?.branchId) searchParams.set('branchId', params.branchId);
     if (params?.startDate) searchParams.set('startDate', params.startDate);
     if (params?.endDate) searchParams.set('endDate', params.endDate);
     const query = searchParams.toString();

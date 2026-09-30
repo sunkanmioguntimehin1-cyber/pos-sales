@@ -37,12 +37,19 @@ async function restoreItemsToLocation(items, fallbackBranchId) {
 
 export async function getOrders(req, res) {
   try {
-    const { status, startDate, endDate } = req.query;
+    const { status, branchId, startDate, endDate } = req.query;
     
     const filter = {};
     
     if (status && status !== 'all') {
       filter.status = status;
+    }
+
+    // Narrow the history to one location for the Branch Details panel. The same
+    // "all" sentinel guard as the transfers list keeps a UI sentinel from being
+    // cast to an ObjectId and rejecting the request.
+    if (branchId && branchId !== 'all') {
+      filter.branchId = branchId;
     }
     
     if (startDate || endDate) {

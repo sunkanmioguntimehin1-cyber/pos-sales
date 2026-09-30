@@ -7,7 +7,7 @@ import { Staff } from '../src/models/staff.model.js';
 import { Customer } from '../src/models/customer.model.js';
 import { Order } from '../src/models/order.model.js';
 import { Stock } from '../src/models/stock.model.js';
-import { createOrder, updateOrderStatus } from '../src/controllers/orders.controller.js';
+import { createOrder, updateOrderStatus, getOrders } from '../src/controllers/orders.controller.js';
 import { getLocationStock, setLocationStock, ensureHeadOffice } from '../src/services/stock.service.js';
 
 /** A completed order is the only thing that has ever deducted stock. */
@@ -260,6 +260,40 @@ describe('orders: per-location stock and refunds', () => {
       const res = mockRes();
       await updateOrderStatus({ params: { orderId: 'not-an-id' }, body: { status: 'cancelled' } }, res);
       assert.equal(res.statusCode, 400);
+    });
+  });
+
+  describe('getOrders: branch history', () => {
+    it('filters sales down to the named location', async () => {
+      const headOffice = await ensureHeadOffice();
+      const outlet = await Branch.create({ name: 'Accra Mall', type: 'branch' });
+      const product = await Product.create({ name: 'Widget', price: 5 });
+
+      const item = [{ productId: product._id, productName: 'Widget', quantity: 1, unitPrice: 5, totalPrice: 5 }];
+      const inStore = await seedOrder({ branchId: outlet._id, items: item });
+      await seedOrder({ branchId: headOffice._id, items: item });
+
+      const res = mockRes();
+      await getOrders({ query: { branchId: String(outlet._id) } }, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.orders.length, 1);
+      assert.equal(String(res.body.orders[0]._id), String(inStore._id));
+    });
+
+    it('treats branchId=all as an unfiltered list, not an ObjectId to cast', async () => {
+      const headOffice = await ensureHeadOffice();
+      const outlet = await Branch.create({ name: 'Accra Mall', type: 'branch' });
+      const product = await Product.create({ name: 'Widget', price: 5 });
+      const item = [{ productId: product._id, productName: 'Widget', quantity: 1, unitPrice: 5, totalPrice: 5 }];
+      await seedOrder({ branchId: outlet._id, items: item });
+      await seedOrder({ branchId: headOffice._id, items: item });
+
+      const res = mockRes();
+      await getOrders({ query: { branchId: 'all' } }, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.orders.length, 2);
     });
   });
 
