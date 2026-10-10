@@ -12,7 +12,7 @@ export type BranchStock = ProductStockLevel;
 
 export type PaymentMethod = 'cash' | 'transfer' | 'pos';
 export type BankType = 'gtb' | 'firstbank';
-export type POSMachineType = 'gtb_pos' | 'firstbank_pos';
+export type POSMachineType = string;
 
 export interface SplitPayment {
   id: string;

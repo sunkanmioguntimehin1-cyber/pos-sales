@@ -79,8 +79,13 @@ export function POSTerminalScreen() {
   /** Payment methods disabled in Settings are not offered at the till. */
   const payConfig = store?.settings?.paymentMethods;
   const cashEnabled = payConfig?.cash ?? true;
-  const transferEnabled = payConfig ? payConfig.transfer.enabled && (payConfig.transfer.gtb || payConfig.transfer.firstbank) : true;
-  const posEnabled = payConfig ? payConfig.pos.enabled && (payConfig.pos.gtb || payConfig.pos.firstbank) : true;
+  const transferEnabled = payConfig
+    ? payConfig.transfer.enabled && (payConfig.transfer.gtb || payConfig.transfer.firstbank)
+    : true;
+  const posTerminals = payConfig?.pos?.terminals ?? [];
+  const posEnabled = payConfig
+    ? payConfig.pos.enabled && posTerminals.some((t) => t.enabled)
+    : true;
   const availableMethods = [cashEnabled, transferEnabled, posEnabled].filter(Boolean).length;
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -97,7 +102,7 @@ export function POSTerminalScreen() {
   
   // Transfer/POS selection
   const [selectedBank, setSelectedBank] = useState<BankType | null>(null);
-  const [selectedPOS, setSelectedPOS] = useState<POSMachineType | null>(null);
+  const [selectedPOS, setSelectedPOS] = useState<string | null>(null);
   
   // Split payment
   const [splitPayments, setSplitPayments] = useState<SplitPayment[]>([]);
@@ -157,8 +162,9 @@ export function POSTerminalScreen() {
     setIsReceiptModalOpen(false);
   };
 
+  const taxRate = store?.settings?.tax?.rate ?? 8.25;
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.qty, 0), [cart]);
-  const tax = subtotal * 0.0825;
+  const tax = subtotal * (taxRate / 100);
   const total = subtotal + tax;
   const totalItems = cart.reduce((s, c) => s + c.qty, 0);
   const cashNum = parseFloat(cashInput || '0');
@@ -193,12 +199,18 @@ export function POSTerminalScreen() {
   const buildPaymentLabel = () => {
     if (payView === 'cash') return 'Cash';
     if (payView === 'transfer' && selectedBank) return `Transfer (${bankLabels[selectedBank]})`;
-    if (payView === 'pos' && selectedPOS) return `POS (${posLabels[selectedPOS]})`;
+    if (payView === 'pos' && selectedPOS) {
+      const name = payConfig?.pos?.terminals?.find((t) => t.id === selectedPOS)?.name || posLabels[selectedPOS as keyof typeof posLabels] || selectedPOS;
+      return `POS (${name})`;
+    }
     if (payView === 'split') {
       return splitPayments.map(p => {
         if (p.method === 'cash') return 'Cash';
         if (p.method === 'transfer' && p.bank) return `Transfer (${bankLabels[p.bank]})`;
-        if (p.method === 'pos' && p.posMachine) return `POS (${posLabels[p.posMachine]})`;
+        if (p.method === 'pos' && p.posMachine) {
+          const name = payConfig?.pos?.terminals?.find((t) => t.id === p.posMachine)?.name || posLabels[p.posMachine as keyof typeof posLabels] || p.posMachine;
+          return `POS (${name})`;
+        }
         return p.method;
       }).join(' + ');
     }
@@ -579,7 +591,7 @@ export function POSTerminalScreen() {
                   <span>Subtotal</span><span className="tabular-nums">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-muted">
-                  <span>Tax (8.25%)</span><span className="tabular-nums">${tax.toFixed(2)}</span>
+                  <span>Tax ({taxRate.toFixed(2)}%)</span><span className="tabular-nums">${tax.toFixed(2)}</span>
                 </div>
                 <div className="h-px bg-[var(--input-bg)] my-1" />
                 <div className="flex justify-between text-lg font-extrabold text-[var(--text)]">
@@ -759,7 +771,7 @@ export function POSTerminalScreen() {
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-subtle mb-2">Select POS Machine</div>
               <div className="grid grid-cols-2 gap-2">
-                {POS_MACHINES.filter(m => payConfig?.pos[m.id === 'gtb_pos' ? 'gtb' : 'firstbank'] ?? true).map(pos => (
+                {(payConfig?.pos?.terminals?.filter((t) => t.enabled) ?? POS_MACHINES.map((m) => ({ id: m.id, name: m.name, enabled: true, type: 'other' }))).map((pos) => (
                   <button
                     key={pos.id}
                     onClick={() => setSelectedPOS(pos.id)}
@@ -770,7 +782,7 @@ export function POSTerminalScreen() {
                     }`}
                   >
                     <span className="text-2xl">💳</span>
-                    <span className="text-[11px] font-bold">{posLabels[pos.id]}</span>
+                    <span className="text-[11px] font-bold">{pos.name || posLabels[pos.id as keyof typeof posLabels] || pos.id}</span>
                   </button>
                 ))}
               </div>
@@ -781,7 +793,9 @@ export function POSTerminalScreen() {
                 <IconCreditCard size={24} />
               </div>
               <div className="text-[13px] font-bold text-[var(--text)]">
-                {selectedPOS ? posLabels[selectedPOS] : 'Select POS Machine'}
+                {selectedPOS
+                  ? (payConfig?.pos?.terminals?.find((t) => t.id === selectedPOS)?.name || posLabels[selectedPOS as keyof typeof posLabels] || selectedPOS)
+                  : 'Select POS Machine'}
               </div>
               <div className="text-xs text-subtle">
                 {selectedPOS ? 'Ready to process card payment' : 'Choose a POS machine above'}
@@ -1013,6 +1027,7 @@ export function POSTerminalScreen() {
         total={total}
         tax={tax}
         subtotal={subtotal}
+        taxRate={taxRate}
         paymentMethod={completedSaleData?.paymentMethod || ''}
         staffName={completedSaleData?.staffName || ''}
         orderNumber={completedSaleData?.orderNumber}

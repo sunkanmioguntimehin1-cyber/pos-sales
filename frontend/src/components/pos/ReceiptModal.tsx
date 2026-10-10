@@ -12,12 +12,13 @@ interface ReceiptModalProps {
   total: number;
   tax: number;
   subtotal: number;
+  taxRate?: number;
   paymentMethod: string;
   staffName: string;
   orderNumber?: string;
 }
 
-export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subtotal, paymentMethod, staffName, orderNumber }: ReceiptModalProps) {
+export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subtotal, taxRate = 8.25, paymentMethod, staffName, orderNumber }: ReceiptModalProps) {
   // `email` was only seeded on mount, so opening the receipt for a customer
   // created during the sale left the field blank. The parent keys this
   // component on the order number, so each sale starts from clean state —
@@ -121,7 +122,7 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[11px] text-muted mb-2">
-                  <span>Tax (8.25%)</span>
+                  <span>Tax ({taxRate.toFixed(2)}%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[13px] font-bold text-[var(--text)] pt-2 border-t border-[var(--border)]">

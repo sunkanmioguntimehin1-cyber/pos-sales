@@ -30,6 +30,18 @@ export async function updateStore(req, res) {
       if (settings.primaryColor) store.settings.primaryColor = settings.primaryColor;
       if (settings.accentColor) store.settings.accentColor = settings.accentColor;
       if (settings.theme) store.settings.theme = settings.theme;
+      if (settings.tax) {
+        const t = settings.tax;
+        if (typeof t.rate === 'number' && t.rate >= 0 && t.rate <= 100) {
+          store.settings.tax.rate = t.rate;
+        }
+        if (typeof t.number === 'string') {
+          store.settings.tax.number = t.number;
+        }
+        if (typeof t.includedInPrice === 'boolean') {
+          store.settings.tax.includedInPrice = t.includedInPrice;
+        }
+      }
       // Previously any payment-method changes sent from the settings screen
       // were dropped here, so the toggles appeared to save but never applied.
       if (settings.paymentMethods) {
@@ -46,6 +58,14 @@ export async function updateStore(req, res) {
           if (typeof p.enabled === 'boolean') store.settings.paymentMethods.pos.enabled = p.enabled;
           if (typeof p.gtb === 'boolean') store.settings.paymentMethods.pos.gtb = p.gtb;
           if (typeof p.firstbank === 'boolean') store.settings.paymentMethods.pos.firstbank = p.firstbank;
+          if (Array.isArray(p.terminals)) {
+            store.settings.paymentMethods.pos.terminals = p.terminals.map((term) => ({
+              id: String(term.id || '').trim(),
+              name: String(term.name || '').trim(),
+              enabled: typeof term.enabled === 'boolean' ? term.enabled : true,
+              type: ['gtb', 'firstbank', 'other'].includes(term.type) ? term.type : 'other',
+            })).filter((term) => term.id && term.name);
+          }
         }
       }
     }

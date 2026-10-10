@@ -413,11 +413,29 @@ export function SettingsScreen() {
   // The old useEffect-to-setState pair caused an extra render on every load.
   const [storeNameOverride, setStoreNameOverride] = useState<string | null>(null);
   const [storeDescOverride, setStoreDescOverride] = useState<string | null>(null);
+  const [taxRateOverride, setTaxRateOverride] = useState<number | string | null>(null);
+  const [taxNumberOverride, setTaxNumberOverride] = useState<string | null>(null);
+  const [taxIncludedOverride, setTaxIncludedOverride] = useState<boolean | null>(null);
   const storeName = storeNameOverride ?? store?.name ?? "";
   const storeDesc = storeDescOverride ?? store?.description ?? "";
+  const taxRate = taxRateOverride ?? store?.settings?.tax?.rate ?? 8.25;
+  const taxNumber = taxNumberOverride ?? store?.settings?.tax?.number ?? "";
+  const taxIncludedInPrice =
+    taxIncludedOverride ?? store?.settings?.tax?.includedInPrice ?? false;
 
   const handleSaveStore = () => {
-    updateStore.mutate({ name: storeName, description: storeDesc });
+    updateStore.mutate({
+      name: storeName,
+      description: storeDesc,
+      settings: {
+        ...store?.settings,
+        tax: {
+          rate: Number(taxRate) || 0,
+          number: String(taxNumber ?? ''),
+          includedInPrice: Boolean(taxIncludedInPrice),
+        },
+      },
+    });
   };
 
   const inputCls =
@@ -590,7 +608,11 @@ export function SettingsScreen() {
                 </label>
                 <input
                   type="number"
-                  defaultValue="21"
+                  value={taxRate}
+                  onChange={(e) => setTaxRateOverride(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  step="0.01"
+                  min="0"
+                  max="100"
                   className={inputCls}
                   style={inputStyle}
                 />
@@ -604,7 +626,8 @@ export function SettingsScreen() {
                 </label>
                 <input
                   type="text"
-                  defaultValue="NL123456789B01"
+                  value={taxNumber}
+                  onChange={(e) => setTaxNumberOverride(e.target.value)}
                   className={inputCls}
                   style={inputStyle}
                 />
@@ -616,9 +639,14 @@ export function SettingsScreen() {
                 >
                   Tax Included in Price
                 </label>
-                <select className={inputCls} style={selectStyle}>
-                  <option>Yes</option>
-                  <option>No</option>
+                <select
+                  value={taxIncludedInPrice ? 'Yes' : 'No'}
+                  onChange={(e) => setTaxIncludedOverride(e.target.value === 'Yes')}
+                  className={inputCls}
+                  style={selectStyle}
+                >
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
                 </select>
               </div>
             </div>
@@ -627,10 +655,17 @@ export function SettingsScreen() {
               style={{ borderColor: "var(--color-border)" }}
             >
               <button
-                className="h-9 px-4 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
-                style={{ backgroundColor: "var(--color-primary)" }}
+                onClick={handleSaveStore}
+                disabled={updateStore.isPending || !canManageSettings}
+                className="h-9 px-4 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: updateStore.isPending
+                    ? "var(--color-primary)80"
+                    : "var(--color-primary)",
+                }}
+                title={canManageSettings ? undefined : "Your role doesn't include permission to edit store settings"}
               >
-                Save Changes
+                {updateStore.isPending ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </>

@@ -7,7 +7,13 @@ import type { PaymentMethodConfig } from '@/lib/api/store';
 const DEFAULT_METHODS: PaymentMethodConfig = {
   cash: true,
   transfer: { enabled: true, gtb: true, firstbank: true },
-  pos: { enabled: true, gtb: true, firstbank: true },
+  pos: {
+    enabled: true,
+    terminals: [
+      { id: 'gtb_pos', name: 'GTBank POS', enabled: true, type: 'gtb' },
+      { id: 'firstbank_pos', name: 'FirstBank POS', enabled: true, type: 'firstbank' },
+    ],
+  },
 };
 
 export function PaymentMethodSettings() {
@@ -52,6 +58,63 @@ export function PaymentMethodSettings() {
     const groupConfig = current[group];
     persist({ ...current, [group]: { ...groupConfig, [bank]: !groupConfig[bank] } });
   };
+
+  const togglePosTerminal = (terminalId: string) => {
+    const terminals = current.pos.terminals || [];
+    const updated = terminals.map((t) =>
+      t.id === terminalId ? { ...t, enabled: !t.enabled } : t
+    );
+    persist({
+      ...current,
+      pos: {
+        ...current.pos,
+        terminals: updated,
+      },
+    });
+  };
+
+  const addPosTerminal = () => {
+    const name = prompt('Enter POS terminal name (e.g., Zenith Bank POS)');
+    if (!name || !name.trim()) return;
+    const id = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '');
+    const terminals = current.pos.terminals || [];
+    if (terminals.some((t) => t.id === id)) {
+      alert('A terminal with a similar name already exists');
+      return;
+    }
+    persist({
+      ...current,
+      pos: {
+        ...current.pos,
+        terminals: [
+          ...terminals,
+          {
+            id: id || `pos_${Date.now()}`,
+            name: name.trim(),
+            enabled: true,
+            type: 'other',
+          },
+        ],
+      },
+    });
+  };
+
+  const removePosTerminal = (terminalId: string) => {
+    if (!confirm('Remove this POS terminal?')) return;
+    const terminals = current.pos.terminals || [];
+    persist({
+      ...current,
+      pos: {
+        ...current.pos,
+        terminals: terminals.filter((t) => t.id !== terminalId),
+      },
+    });
+  };
+
 
   return (
     <div className="flex flex-col gap-5">
@@ -158,28 +221,43 @@ export function PaymentMethodSettings() {
 
         {current.pos.enabled && (
           <div className="px-4 py-3 bg-[var(--surface-2)] border-t border-[var(--border)]">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                {(current.pos.terminals || []).map((terminal) => (
+                  <button
+                    key={terminal.id}
+                    onClick={() => togglePosTerminal(terminal.id)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
+                      terminal.enabled
+                        ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                        : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    <span className="text-[12px] font-semibold truncate pr-2">{terminal.name}</span>
+                    <div className="flex items-center gap-1">
+                      {terminal.enabled && <IconCheck size={14} />}
+                      {terminal.type === 'other' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removePosTerminal(terminal.id);
+                          }}
+                          className="text-red-400 hover:text-red-300 text-xs"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
               <button
-                onClick={() => toggleBank('pos', 'gtb')}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
-                  current.pos.gtb
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
-                    : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
-                }`}
+                type="button"
+                onClick={addPosTerminal}
+                className="h-8 px-3 rounded-lg border border-dashed border-[var(--border-strong)] text-[11px] text-muted hover:text-[var(--text)] hover:border-[var(--border)] transition-all"
               >
-                <span className="text-[12px] font-semibold">GTBank POS</span>
-                {current.pos.gtb && <IconCheck size={14} />}
-              </button>
-              <button
-                onClick={() => toggleBank('pos', 'firstbank')}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
-                  current.pos.firstbank
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
-                    : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
-                }`}
-              >
-                <span className="text-[12px] font-semibold">FirstBank POS</span>
-                {current.pos.firstbank && <IconCheck size={14} />}
+                + Add Another POS Machine
               </button>
             </div>
           </div>
