@@ -416,12 +416,14 @@ export function SettingsScreen() {
   const [taxRateOverride, setTaxRateOverride] = useState<number | string | null>(null);
   const [taxNumberOverride, setTaxNumberOverride] = useState<string | null>(null);
   const [taxIncludedOverride, setTaxIncludedOverride] = useState<boolean | null>(null);
+  const [discountRateOverride, setDiscountRateOverride] = useState<number | string | null>(null);
   const storeName = storeNameOverride ?? store?.name ?? "";
   const storeDesc = storeDescOverride ?? store?.description ?? "";
   const taxRate = taxRateOverride ?? store?.settings?.tax?.rate ?? 8.25;
   const taxNumber = taxNumberOverride ?? store?.settings?.tax?.number ?? "";
   const taxIncludedInPrice =
     taxIncludedOverride ?? store?.settings?.tax?.includedInPrice ?? false;
+  const discountRate = discountRateOverride ?? store?.settings?.discount?.rate ?? 0;
 
   const handleSaveStore = () => {
     updateStore.mutate({
@@ -438,6 +440,15 @@ export function SettingsScreen() {
     });
   };
 
+  const handleSaveDiscount = () => {
+    updateStore.mutate({
+      settings: {
+        ...store?.settings,
+        discount: { rate: Number(discountRate) || 0 },
+      },
+    });
+  };
+
   const inputCls =
     "w-full h-9 px-3 rounded-lg text-[13px] outline-none transition-all";
   const inputStyle = {
@@ -450,6 +461,7 @@ export function SettingsScreen() {
   const tabs = [
     { id: "store", label: "Store Info" },
     { id: "tax", label: "Tax Settings" },
+    { id: "discount", label: "Discount" },
     { id: "payment", label: "Payment Methods" },
     { id: "receipts", label: "Receipts" },
     { id: "integrations", label: "Integrations" },
@@ -556,7 +568,7 @@ export function SettingsScreen() {
                     </label>
                     <select className={inputCls} style={selectStyle}>
                       <option>EUR (€)</option>
-                      <option>USD ($)</option>
+                      <option>USD</option>
                       <option>GBP (£)</option>
                     </select>
                   </div>
@@ -656,6 +668,73 @@ export function SettingsScreen() {
             >
               <button
                 onClick={handleSaveStore}
+                disabled={updateStore.isPending || !canManageSettings}
+                className="h-9 px-4 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: updateStore.isPending
+                    ? "var(--color-primary)80"
+                    : "var(--color-primary)",
+                }}
+                title={canManageSettings ? undefined : "Your role doesn't include permission to edit store settings"}
+              >
+                {updateStore.isPending ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {activeTab === "discount" && (
+          <>
+            <div
+              className="font-extrabold text-base mb-0.5"
+              style={{ color: "var(--color-text)" }}
+            >
+              Discount Settings
+            </div>
+            <div
+              className="text-xs mb-5"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Set the store-wide discount cashiers can apply to a sale at checkout
+            </div>
+            <div className="grid grid-cols-2 gap-3.5 mb-5">
+              <div>
+                <label
+                  className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
+                  style={{ color: "var(--color-text-subtle)" }}
+                >
+                  Discount Rate (%)
+                </label>
+                <input
+                  type="number"
+                  value={discountRate}
+                  onChange={(e) => setDiscountRateOverride(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className={inputCls}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <div
+              className="rounded-lg p-3 mb-5 text-[11px] border"
+              style={{
+                color: "var(--color-text-muted)",
+                backgroundColor: "var(--color-surface)",
+                borderColor: "var(--color-border)",
+              }}
+            >
+              Set to 0 to turn discounts off. When set, the checkout shows a
+              discount toggle that applies this percentage to the tax-inclusive
+              total.
+            </div>
+            <div
+              className="pt-4 border-t flex justify-end"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <button
+                onClick={handleSaveDiscount}
                 disabled={updateStore.isPending || !canManageSettings}
                 className="h-9 px-4 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{

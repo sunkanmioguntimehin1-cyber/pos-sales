@@ -30,6 +30,10 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   tax: number;
+  /** Amount deducted from the tax-inclusive total. */
+  discount?: number;
+  /** The store discount rate (%) that produced `discount`. */
+  discountRate?: number;
   total: number;
   paymentMethod?: string;
   status: 'pending' | 'completed' | 'cancelled' | 'refunded';
@@ -48,6 +52,10 @@ export interface CreateOrderData {
   items: OrderItem[];
   subtotal: number;
   tax: number;
+  /** Discount amount deducted from the tax-inclusive total. */
+  discount?: number;
+  /** The store discount rate (%) that produced `discount`. */
+  discountRate?: number;
   total: number;
   paymentMethod?: string;
   /** Attributes the sale to this staff member instead of the logged-in user. */
@@ -75,10 +83,11 @@ export function getOrderBranchName(order: Pick<Order, 'branchId'>): string | und
 }
 
 export const ordersApi = {
-  getAll: (params?: { status?: string; branchId?: string; startDate?: string; endDate?: string }) => {
+  getAll: (params?: { status?: string; branchId?: string; customerId?: string; startDate?: string; endDate?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set('status', params.status);
     if (params?.branchId) searchParams.set('branchId', params.branchId);
+    if (params?.customerId) searchParams.set('customerId', params.customerId);
     if (params?.startDate) searchParams.set('startDate', params.startDate);
     if (params?.endDate) searchParams.set('endDate', params.endDate);
     const query = searchParams.toString();

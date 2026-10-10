@@ -14,8 +14,13 @@ export interface Product {
   sku?: string;
   barcode?: string;
   description?: string;
+  size?: string;
+  colour?: string;
   price: number;
   costPrice?: number;
+  /** Informational per-unit costs on top of costPrice (form + view panel only). */
+  overheadCost?: number;
+  operatingCost?: number;
   /**
    * The backend populates the category *into* categoryId
    * (`.populate('categoryId', 'name color')`), so this arrives as an object on
@@ -41,6 +46,8 @@ export interface Product {
   /** The HQ-wide default target, used when a branch has never set its own. */
   lowStockThreshold: number;
   isActive: boolean;
+  /** Whether this product attracts the store's tax rate at checkout. */
+  taxable?: boolean;
   createdAt: string;
 }
 
@@ -66,13 +73,18 @@ export interface CreateProductData {
   sku?: string;
   barcode?: string;
   description?: string;
+  size?: string;
+  colour?: string;
   price: number;
   costPrice?: number;
+  overheadCost?: number;
+  operatingCost?: number;
   categoryId?: string;
   image?: string;
   stock?: number;
   lowStockThreshold?: number;
   isActive?: boolean;
+  taxable?: boolean;
 }
 
 export interface Category {

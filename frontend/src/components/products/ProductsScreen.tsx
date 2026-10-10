@@ -38,19 +38,31 @@ function statusBadge(s: string) {
 interface AddProductFormData {
   name: string;
   productCode: string;
+  description: string;
+  size: string;
+  colour: string;
+  barcode: string;
   sellingPrice: number;
   cost: number;
+  overheadCost?: number;
+  operatingCost?: number;
   stock: number;
   categoryId?: string;
   isActive?: boolean;
+  taxable: boolean;
   image?: string;
 }
 
 interface UpdateProductFormData {
   productCode: string;
   name: string;
+  description: string;
+  size: string;
+  colour: string;
   sellingPrice: number;
   cost: number;
+  overheadCost?: number;
+  operatingCost?: number;
   stock: number;
   categoryId?: string;
   isActive?: boolean;
@@ -91,11 +103,18 @@ export function ProductsScreen() {
     const data: CreateProductData = {
       name: productData.name,
       sku: productData.productCode,
+      barcode: productData.barcode,
+      description: productData.description,
+      size: productData.size,
+      colour: productData.colour,
       price: productData.sellingPrice,
       costPrice: productData.cost,
+      overheadCost: productData.overheadCost,
+      operatingCost: productData.operatingCost,
       stock: productData.stock,
       categoryId: productData.categoryId,
       isActive: productData.isActive ?? true,
+      taxable: productData.taxable,
       image: productData.image,
     };
     createProduct.mutate(data);
@@ -107,8 +126,13 @@ export function ProductsScreen() {
       data: {
         name: productData.name,
         sku: productData.productCode,
+        description: productData.description,
+        size: productData.size,
+        colour: productData.colour,
         price: productData.sellingPrice,
         costPrice: productData.cost,
+        overheadCost: productData.overheadCost,
+        operatingCost: productData.operatingCost,
         stock: productData.stock,
         categoryId: productData.categoryId,
         isActive: productData.isActive ?? true,
@@ -246,7 +270,7 @@ export function ProductsScreen() {
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
                       <span className="text-xs text-muted">{getProductCategoryName(p) || '-'}</span>
                     </td>
-                    <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums text-[var(--text)]">${p.price.toFixed(2)}</td>
+                    <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums text-[var(--text)]">₦{p.price.toFixed(2)}</td>
                     <td className={`px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums ${p.stock === 0 ? 'text-red-400' : p.stock < (p.lowStockThreshold || 10) ? 'text-amber-400' : 'text-[var(--text)]'}`}>{p.stock}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">{statusBadge(getProductStatus(p))}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]" onClick={e => e.stopPropagation()}>

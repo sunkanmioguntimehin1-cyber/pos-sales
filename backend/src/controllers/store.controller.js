@@ -42,6 +42,14 @@ export async function updateStore(req, res) {
           store.settings.tax.includedInPrice = t.includedInPrice;
         }
       }
+      // Store-wide discount the till may apply. Same shape/validation as tax:
+      // the rate is a percentage, so it must sit within 0–100.
+      if (settings.discount && typeof settings.discount.rate === 'number') {
+        const rate = settings.discount.rate;
+        if (rate >= 0 && rate <= 100) {
+          store.settings.discount.rate = rate;
+        }
+      }
       // Previously any payment-method changes sent from the settings screen
       // were dropped here, so the toggles appeared to save but never applied.
       if (settings.paymentMethods) {

@@ -4,9 +4,11 @@ import { applyIdVirtual } from './plugins/applyIdVirtual.js';
 const customerSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, lowercase: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
     phone: { type: String, trim: true },
     address: { type: String, trim: true },
+    weddingAnniversary: { type: Date },
+    proposalAnniversary: { type: Date },
     tier: {
       type: String,
       enum: ['bronze', 'silver', 'gold', 'platinum'],
@@ -20,7 +22,7 @@ const customerSchema = new Schema(
   { timestamps: true }
 );
 
-customerSchema.index({ email: 1 }, { sparse: true });
+customerSchema.index({ email: 1 });
 customerSchema.index({ phone: 1 }, { sparse: true });
 customerSchema.index({ tier: 1 });
 customerSchema.index({ name: 'text' });

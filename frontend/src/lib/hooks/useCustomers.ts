@@ -41,6 +41,7 @@ export function useCreateCustomer() {
           tier: 'bronze',
           totalSpent: 0,
           visitCount: 0,
+          branches: [],
           createdAt: new Date().toISOString(),
         } as Customer,
       ]);

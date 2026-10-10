@@ -8,8 +8,13 @@ import { Product, getProductCategoryId } from '@/lib/api/products';
 interface EditProductFormData {
   productCode: string;
   name: string;
+  description: string;
+  size: string;
+  colour: string;
   sellingPrice: number;
   cost: number;
+  overheadCost?: number;
+  operatingCost?: number;
   stock: number;
   categoryId?: string;
   isActive?: boolean;
@@ -28,10 +33,16 @@ const defaultFormData: ProductFormData = {
   productCode: '',
   name: '',
   category: '',
+  description: '',
+  size: '',
+  colour: '',
   sellingPrice: '',
   cost: '',
+  overheadCost: '',
+  operatingCost: '',
   stock: '',
   status: 'active',
+  taxable: true,
   image: null,
 };
 
@@ -71,12 +82,18 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
         productCode: product.sku || '',
         name: product.name,
         category: getProductCategoryId(product) || '',
+        description: product.description || '',
+        size: product.size || '',
+        colour: product.colour || '',
         sellingPrice: product.price.toString(),
         cost: (product.costPrice || 0).toString(),
+        overheadCost: (product.overheadCost || 0).toString(),
+        operatingCost: (product.operatingCost || 0).toString(),
         stock: product.stock.toString(),
         // Reflect the stored flag; hardcoding 'active' re-enabled archived
         // products the moment anyone edited an unrelated field.
         status: product.isActive === false ? 'inactive' : 'active',
+        taxable: product.taxable ?? true,
         image: null,
       });
       setImagePreview(product.image || null);
@@ -112,13 +129,20 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
     const sellingPrice = parseFloat(formData.sellingPrice);
     const cost = parseFloat(formData.cost);
     const stock = parseInt(formData.stock);
+    const overheadCost = parseFloat(formData.overheadCost);
+    const operatingCost = parseFloat(formData.operatingCost);
 
     onUpdate(product.id, {
       // Reuse the code shown in the form rather than generating a second one.
       productCode: formData.productCode.trim() || generateProductCode(),
       name: formData.name,
+      description: formData.description.trim(),
+      size: formData.size.trim(),
+      colour: formData.colour.trim(),
       sellingPrice,
       cost,
+      overheadCost: Number.isNaN(overheadCost) ? undefined : overheadCost,
+      operatingCost: Number.isNaN(operatingCost) ? undefined : operatingCost,
       stock,
       categoryId: formData.category || undefined,
       isActive: formData.status !== 'inactive',
@@ -164,6 +188,7 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
           imagePreview={imagePreview}
           setImagePreview={setImagePreview}
           isEdit
+          barcode={product.barcode}
         />
       )}
     </Modal>

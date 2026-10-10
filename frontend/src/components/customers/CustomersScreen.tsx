@@ -1,10 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { IconSearch, IconEye, IconHistory } from '@/components/ui/Icons';
+import { IconSearch, IconEye, IconHistory, IconPlus } from '@/components/ui/Icons';
 import { SidePanel } from '@/components/ui/SidePanel';
 import { CustomerHistoryPanel } from './CustomerHistoryPanel';
+import { AddCustomerModal } from '@/components/pos/AddCustomerModal';
 import { SkeletonTable } from '@/components/ui/Skeleton';
-import { useCustomers, Customer } from '@/lib/hooks';
+import { useCustomers, useCreateCustomer, Customer } from '@/lib/hooks';
 
 const tierBadge: Record<string, string> = {
   platinum: 'bg-violet-500/15 text-violet-400',
@@ -20,6 +21,9 @@ export function CustomersScreen() {
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const createCustomer = useCreateCustomer();
 
   const { data: customers = [], isLoading } = useCustomers({
     // Lowercase enum values — 'Platinum' would never match the stored tier.
@@ -40,6 +44,18 @@ export function CustomersScreen() {
     setIsHistoryOpen(true);
   };
 
+  const handleAddCustomer = async (data: {
+    name: string;
+    phone: string;
+    email: string;
+    address?: string;
+    weddingAnniversary?: string;
+    proposalAnniversary?: string;
+    notes?: string;
+  }) => {
+    await createCustomer.mutateAsync(data);
+  };
+
   const totalCustomers = customers.length;
   const loyaltyMembers = customers.filter(c => c.tier !== 'bronze').length;
   const totalSpent = customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
@@ -57,7 +73,7 @@ export function CustomersScreen() {
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Avg. Lifetime Value</div>
-          <div className="text-[24px] font-extrabold text-[var(--text)]">{isLoading ? '...' : `$${(totalSpent / totalCustomers || 0).toFixed(0)}`}</div>
+          <div className="text-[24px] font-extrabold text-[var(--text)]">{isLoading ? '...' : `₦${(totalSpent / totalCustomers || 0).toFixed(0)}`}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Loyalty Members</div>
@@ -85,18 +101,25 @@ export function CustomersScreen() {
             <option value="silver">Silver</option>
             <option value="bronze">Bronze</option>
           </select>
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="h-9 px-3 flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all whitespace-nowrap"
+          >
+            <IconPlus size={14} />
+            Add Customer
+          </button>
         </div>
 
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="p-4">
-              <SkeletonTable rows={5} cols={7} />
+              <SkeletonTable rows={5} cols={8} />
             </div>
           ) : (
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  {['Customer', 'Phone', 'Tier', 'Visits', 'Total Spent', 'Last Visit', 'Actions'].map(h => (
+                  {['Customer', 'Phone', 'Branch', 'Tier', 'Visits', 'Total Spent', 'Last Visit', 'Actions'].map(h => (
                     <th key={h} className="px-3.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-subtle border-b border-[var(--border)] bg-[var(--surface-2)] whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -116,13 +139,18 @@ export function CustomersScreen() {
                       </div>
                     </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] text-muted text-xs">{customer.phone}</td>
+                    <td className="px-3.5 py-3 border-b border-[var(--border)] text-muted text-xs">
+                      {customer.branches && customer.branches.length > 0
+                        ? customer.branches.join(', ')
+                        : <span className="text-subtle">-</span>}
+                    </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${tierBadge[customer.tier]}`}>
                         ★ {customer.tier.charAt(0).toUpperCase() + customer.tier.slice(1)}
                       </span>
                     </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] tabular-nums text-[var(--text)] text-xs">{customer.visitCount || 0}</td>
-                    <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold text-emerald-400 tabular-nums text-xs">${(customer.totalSpent || 0).toLocaleString()}</td>
+                    <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold text-emerald-400 tabular-nums text-xs">₦{(customer.totalSpent || 0).toLocaleString()}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] text-xs text-subtle">{customer.lastVisit || '-'}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
                       <div className="flex items-center gap-1">
@@ -166,6 +194,12 @@ export function CustomersScreen() {
       >
         <CustomerHistoryPanel customer={selectedCustomer} />
       </SidePanel>
+
+      <AddCustomerModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onAdd={handleAddCustomer}
+      />
     </div>
   );
 }

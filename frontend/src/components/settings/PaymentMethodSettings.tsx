@@ -224,32 +224,31 @@ export function PaymentMethodSettings() {
             <div className="flex flex-col gap-2">
               <div className="grid grid-cols-2 gap-2">
                 {(current.pos.terminals || []).map((terminal) => (
-                  <button
+                  <div
                     key={terminal.id}
-                    onClick={() => togglePosTerminal(terminal.id)}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${
                       terminal.enabled
                         ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
                         : 'border-[var(--border-strong)] text-muted hover:border-[var(--border-strong)]'
                     }`}
                   >
-                    <span className="text-[12px] font-semibold truncate pr-2">{terminal.name}</span>
-                    <div className="flex items-center gap-1">
-                      {terminal.enabled && <IconCheck size={14} />}
-                      {terminal.type === 'other' && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removePosTerminal(terminal.id);
-                          }}
-                          className="text-red-400 hover:text-red-300 text-xs"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => togglePosTerminal(terminal.id)}
+                      className="flex items-center gap-1 min-w-0 flex-1 text-left"
+                    >
+                      <span className="text-[12px] font-semibold truncate pr-2">{terminal.name}</span>
+                      {terminal.enabled && <IconCheck size={14} className="flex-shrink-0" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePosTerminal(terminal.id)}
+                      title="Remove this POS terminal"
+                      className="text-red-400 hover:text-red-300 text-sm leading-none flex-shrink-0 ml-1"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
               <button

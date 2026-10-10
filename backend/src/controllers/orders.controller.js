@@ -15,6 +15,9 @@ function generateOrderNumber() {
   return `ORD-${dateStr}-${random}`;
 }
 
+/** Money is stored with at most 2 decimals to avoid float noise in the schema. */
+const round2 = (value) => Math.round(value * 100) / 100;
+
 /**
  * Credits units back to the location they were taken from.
  *
@@ -37,7 +40,7 @@ async function restoreItemsToLocation(items, fallbackBranchId) {
 
 export async function getOrders(req, res) {
   try {
-    const { status, branchId, startDate, endDate } = req.query;
+    const { status, branchId, customerId, startDate, endDate } = req.query;
     
     const filter = {};
     
@@ -50,6 +53,11 @@ export async function getOrders(req, res) {
     // cast to an ObjectId and rejecting the request.
     if (branchId && branchId !== 'all') {
       filter.branchId = branchId;
+    }
+
+    // Powers the Purchase History panel on a customer record.
+    if (customerId && customerId !== 'all') {
+      filter.customerId = customerId;
     }
     
     if (startDate || endDate) {
@@ -77,7 +85,7 @@ export async function getOrders(req, res) {
 
 export async function createOrder(req, res) {
   try {
-    const { items, subtotal, tax, total, paymentMethod, customerId, branchId, staffId, notes } = req.body;
+    const { items, subtotal, tax, total, paymentMethod, customerId, branchId, staffId, notes, discount, discountRate } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       res.status(400).json({ error: 'Order must have at least one item' });
@@ -156,11 +164,20 @@ export async function createOrder(req, res) {
       );
     }
 
+    // Client-supplied, so clamp rather than trust: a negative discount would
+    // inflate revenue, and a rate outside 0–100 would make no sense in reports.
+    const safeDiscount = Number.isFinite(discount) && discount > 0 ? round2(discount) : 0;
+    const safeDiscountRate = Number.isFinite(discountRate) && discountRate > 0
+      ? Math.min(discountRate, 100)
+      : 0;
+
     const order = new Order({
       orderNumber: generateOrderNumber(),
       items: items.map((item) => ({ ...item, locationId: sourceBranchId })),
       subtotal,
       tax,
+      discount: safeDiscount,
+      discountRate: safeDiscountRate,
       total,
       paymentMethod,
       customerId,

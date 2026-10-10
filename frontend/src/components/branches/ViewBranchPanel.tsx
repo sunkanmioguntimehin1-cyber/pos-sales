@@ -7,6 +7,7 @@ import {
 import { Branch } from '@/lib/api/branches';
 import { useCan } from '@/lib/auth/can';
 import { useStaff, useProducts, useOrders, getOrderStaffName } from '@/lib/hooks';
+import { formatMoney } from '@/lib/utils/currency';
 
 interface ViewBranchPanelProps {
   isOpen: boolean;
@@ -14,8 +15,7 @@ interface ViewBranchPanelProps {
   branch: Branch | null;
 }
 
-const currency = (value: number) =>
-  `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const currency = formatMoney;
 
 const orderStatusCls: Record<string, string> = {
   completed: 'bg-emerald-500/15 text-emerald-400',

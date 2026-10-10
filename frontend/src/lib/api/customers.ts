@@ -3,22 +3,28 @@ import api from './axios';
 export interface Customer {
   id: string;
   name: string;
-  email?: string;
+  email: string;
   phone?: string;
   address?: string;
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   totalSpent: number;
   visitCount: number;
   lastVisit?: string;
+  weddingAnniversary?: string;
+  proposalAnniversary?: string;
+  /** Branch(es) this customer has bought from, derived from their orders. */
+  branches?: string[];
   notes?: string;
   createdAt: string;
 }
 
 export interface CreateCustomerData {
   name: string;
-  email?: string;
+  email: string;
   phone?: string;
   address?: string;
+  weddingAnniversary?: string;
+  proposalAnniversary?: string;
   notes?: string;
 }
 

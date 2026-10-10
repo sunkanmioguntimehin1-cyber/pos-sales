@@ -13,9 +13,9 @@ import { SectionCard, StatCard, EmptyState } from '@/components/ui/Card';
 import { AreaChart, BarList } from '@/components/ui/Chart';
 import { useOrders, useProducts, useStaff, useCustomers, getOrderCustomerName } from '@/lib/hooks';
 import type { Order } from '@/lib/api/orders';
+import { formatMoney } from '@/lib/utils/currency';
 
-const currency = (value: number) =>
-  `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const currency = formatMoney;
 
 const statusTone: Record<Order['status'], string> = {
   completed: 'badge-success',

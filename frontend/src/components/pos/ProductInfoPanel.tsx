@@ -54,11 +54,17 @@ export function ProductInfoPanel({ isOpen, onClose, product, onAddToCart }: Prod
       <div className="flex flex-col gap-5">
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-5">
           <div className="flex items-start gap-4">
-            <div className="text-[40px]">📦</div>
+            {product.image ? (
+              <div className="h-20 w-20 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--input-bg)]">
+                <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+              </div>
+            ) : (
+              <div className="text-[40px]">📦</div>
+            )}
             <div className="flex-1">
               <h3 className="text-[15px] font-bold text-[var(--text)] mb-1">{product.name}</h3>
               <div className="font-mono text-[11px] text-subtle mb-2">{product.sku}</div>
-              <div className="text-xl font-extrabold text-blue-400">${product.price.toFixed(2)}</div>
+              <div className="text-xl font-extrabold text-blue-400">₦{product.price.toFixed(2)}</div>
             </div>
           </div>
         </div>

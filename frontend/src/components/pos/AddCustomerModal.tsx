@@ -9,14 +9,28 @@ interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Resolves once the customer is persisted so the caller can link them to the sale. */
-  onAdd: (customer: { name: string; phone: string; email?: string }) => Promise<void> | void;
+  onAdd: (customer: {
+    name: string;
+    phone: string;
+    email: string;
+    address?: string;
+    weddingAnniversary?: string;
+    proposalAnniversary?: string;
+    notes?: string;
+  }) => Promise<void> | void;
 }
 
 interface FormData {
   name: string;
   phone: string;
   email: string;
+  address: string;
+  weddingAnniversary: string;
+  proposalAnniversary: string;
+  notes: string;
 }
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +42,11 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
       await onAdd({
         name: data.name.trim(),
         phone: data.phone.trim(),
-        email: data.email.trim() || undefined,
+        email: data.email.trim(),
+        address: data.address.trim() || undefined,
+        weddingAnniversary: data.weddingAnniversary || undefined,
+        proposalAnniversary: data.proposalAnniversary || undefined,
+        notes: data.notes.trim() || undefined,
       });
       reset();
       onClose();
@@ -111,13 +129,66 @@ export function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalPro
 
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
-            Email Address
+            Email Address *
           </label>
           <input
-            {...register('email')}
+            {...register('email', {
+              required: 'Email is required',
+              pattern: { value: EMAIL_PATTERN, message: 'Enter a valid email address' },
+            })}
             type="email"
+            className={`w-full h-9 px-3 bg-[var(--surface-2)] border rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none transition-all ${
+              errors.email ? 'border-red-500 focus:border-red-500' : 'border-[var(--border-strong)] focus:border-blue-500'
+            }`}
+            placeholder="customer@email.com"
+          />
+          {errors.email && <span className="text-[11px] text-red-400 mt-1">{errors.email.message}</span>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
+              Wedding Anniversary
+            </label>
+            <input
+              {...register('weddingAnniversary')}
+              type="date"
+              className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] outline-none focus:border-blue-500 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
+              Proposal Anniversary
+            </label>
+            <input
+              {...register('proposalAnniversary')}
+              type="date"
+              className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] outline-none focus:border-blue-500 transition-all"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
+            Address
+          </label>
+          <input
+            {...register('address')}
+            type="text"
             className="w-full h-9 px-3 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all"
-            placeholder="customer@email.com (optional)"
+            placeholder="Enter customer address"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-subtle mb-1.5">
+            Notes
+          </label>
+          <textarea
+            {...register('notes')}
+            rows={2}
+            className="w-full px-3 py-2 bg-[var(--surface-2)] border border-[var(--border-strong)] rounded-lg text-[var(--text)] text-[13px] placeholder:text-subtle outline-none focus:border-blue-500 transition-all resize-none"
+            placeholder="Optional notes about this customer"
           />
         </div>
       </form>

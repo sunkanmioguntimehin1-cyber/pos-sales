@@ -6,7 +6,7 @@ import { toBranchQueryId } from '@/lib/utils/branchQuery';
 export type { Order, CreateOrderData } from '@/lib/api/orders';
 export { getOrderCustomerName, getOrderStaffName, getOrderBranchName } from '@/lib/api/orders';
 
-export function useOrders(filters?: { status?: string; branchId?: string; startDate?: string; endDate?: string; enabled?: boolean }) {
+export function useOrders(filters?: { status?: string; branchId?: string; customerId?: string; startDate?: string; endDate?: string; enabled?: boolean }) {
   // `enabled` only controls whether the query runs (used by the Branch Details
   // panel) and is stripped so it never becomes an API parameter.
   const { enabled = true, ...query } = filters || {};

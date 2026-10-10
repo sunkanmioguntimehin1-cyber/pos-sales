@@ -3,6 +3,7 @@ import { Category } from '../models/category.model.js';
 import { Stock } from '../models/stock.model.js';
 import { Branch } from '../models/branch.model.js';
 import { respondWithError } from '../utils/respondWithError.js';
+import { generateBarcode } from '../utils/barcode.js';
 import {
   getHeadOfficeId, getProductStockLevels, setLocationStock, adjustLocationStock, getLocationStock, InsufficientStockError,
 } from '../services/stock.service.js';
@@ -88,7 +89,7 @@ export async function getProduct(req, res) {
 
 export async function createProduct(req, res) {
   try {
-    const { name, sku, barcode, description, price, costPrice, categoryId, image, stock, lowStockThreshold, isActive } = req.body;
+    const { name, sku, barcode, description, size, colour, price, costPrice, overheadCost, operatingCost, categoryId, image, stock, lowStockThreshold, isActive, taxable } = req.body;
 
     if (!name || price === undefined) {
       res.status(400).json({ error: 'Name and price are required' });
@@ -101,10 +102,17 @@ export async function createProduct(req, res) {
     const product = new Product({
       name,
       sku,
-      barcode,
+      // Every product gets a scannable barcode. The form generates one
+      // client-side; anything created elsewhere (inventory, API) falls back
+      // to a server-generated EAN-13 here.
+      barcode: barcode || generateBarcode(),
       description,
+      size,
+      colour,
       price,
       costPrice,
+      overheadCost,
+      operatingCost,
       categoryId,
       image,
       // The opening quantity is the total across all locations, and the head
@@ -115,6 +123,7 @@ export async function createProduct(req, res) {
       // Previously dropped, so "Inactive" products were silently created active
       // and kept showing up in the POS.
       ...(isActive === undefined ? {} : { isActive: Boolean(isActive) }),
+      ...(taxable === undefined ? {} : { taxable: Boolean(taxable) }),
     });
 
     await product.save();
@@ -156,8 +165,8 @@ export async function updateProduct(req, res) {
     // let a client overwrite immutable fields (_id, createdAt) or anything
     // else on the document.
     const MUTABLE_FIELDS = [
-      'name', 'sku', 'barcode', 'description', 'price', 'costPrice',
-      'categoryId', 'image', 'lowStockThreshold', 'isActive',
+      'name', 'sku', 'barcode', 'description', 'size', 'colour', 'price', 'costPrice',
+      'overheadCost', 'operatingCost', 'categoryId', 'image', 'lowStockThreshold', 'isActive', 'taxable',
     ];
     const updates = {};
     for (const field of MUTABLE_FIELDS) {

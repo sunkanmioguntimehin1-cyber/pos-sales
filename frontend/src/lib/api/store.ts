@@ -26,6 +26,11 @@ export interface StoreTaxConfig {
   includedInPrice: boolean;
 }
 
+/** Store-wide discount the till may apply. `rate` is a percentage. */
+export interface StoreDiscountConfig {
+  rate: number;
+}
+
 export interface Store {
   id: string;
   name: string;
@@ -36,6 +41,7 @@ export interface Store {
     accentColor: string;
     theme: 'dark' | 'light' | 'gold';
     tax?: StoreTaxConfig;
+    discount?: StoreDiscountConfig;
     paymentMethods: PaymentMethodConfig;
   };
   createdAt: string;

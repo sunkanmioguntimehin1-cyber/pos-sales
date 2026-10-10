@@ -114,7 +114,7 @@ export function ViewStaffPanel({ isOpen, onClose, staff }: ViewStaffPanelProps) 
               <div className="text-[10px] text-subtle">Orders Today</div>
             </div>
             <div className="text-center p-3 bg-[var(--card)] rounded-lg border border-[var(--border)]">
-              <div className="text-lg font-extrabold text-[var(--text)]">$0</div>
+              <div className="text-lg font-extrabold text-[var(--text)]">₦0</div>
               <div className="text-[10px] text-subtle">Sales Today</div>
             </div>
           </div>

@@ -7,13 +7,21 @@ const productSchema = new Schema(
     sku: { type: String, trim: true },
     barcode: { type: String, trim: true },
     description: { type: String, trim: true },
+    size: { type: String, trim: true },
+    colour: { type: String, trim: true },
     price: { type: Number, required: true, min: 0 },
     costPrice: { type: Number, min: 0 },
+    // Informational per-unit cost breakdown on top of costPrice (shown in the
+    // product view panel; not factored into checkout or profit analysis).
+    overheadCost: { type: Number, min: 0, default: 0 },
+    operatingCost: { type: Number, min: 0, default: 0 },
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category' },
     image: { type: String },
     stock: { type: Number, default: 0, min: 0 },
     lowStockThreshold: { type: Number, default: 10, min: 0 },
     isActive: { type: Boolean, default: true },
+    // Whether this product attracts the store's tax rate at checkout.
+    taxable: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

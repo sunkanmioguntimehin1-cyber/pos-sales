@@ -12,13 +12,16 @@ interface ReceiptModalProps {
   total: number;
   tax: number;
   subtotal: number;
+  discount?: number;
+  discountRate?: number;
   taxRate?: number;
+  taxIncluded?: boolean;
   paymentMethod: string;
   staffName: string;
   orderNumber?: string;
 }
 
-export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subtotal, taxRate = 8.25, paymentMethod, staffName, orderNumber }: ReceiptModalProps) {
+export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subtotal, discount = 0, discountRate = 0, taxRate = 8.25, taxIncluded = false, paymentMethod, staffName, orderNumber }: ReceiptModalProps) {
   // `email` was only seeded on mount, so opening the receipt for a customer
   // created during the sale left the field blank. The parent keys this
   // component on the order number, so each sale starts from clean state —
@@ -119,15 +122,21 @@ export function ReceiptModal({ isOpen, onClose, customer, cart, total, tax, subt
               <div className="p-4">
                 <div className="flex justify-between text-[11px] text-muted mb-1">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₦{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[11px] text-muted mb-2">
-                  <span>Tax ({taxRate.toFixed(2)}%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>Tax ({taxRate.toFixed(2)}%){taxIncluded ? ' · included' : ''}</span>
+                  <span>₦{tax.toFixed(2)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-[11px] text-amber-400 mb-2">
+                    <span>Discount{discountRate > 0 ? ` (${discountRate.toFixed(2)}%)` : ''}</span>
+                    <span>-₦{discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-[13px] font-bold text-[var(--text)] pt-2 border-t border-[var(--border)]">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₦{total.toFixed(2)}</span>
                 </div>
                 <div className="mt-3 pt-3 border-t border-[var(--border)]">
                   {orderNumber && (

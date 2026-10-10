@@ -1,6 +1,7 @@
 'use client';
 import { IconReceipt, IconCreditCard, IconStore, IconUser } from '@/components/ui/Icons';
 import { Customer } from '@/lib/api/customers';
+import { useOrders, getOrderStaffName, getOrderBranchName } from '@/lib/hooks';
 
 interface CustomerHistoryPanelProps {
   customer: Customer | null;
@@ -29,9 +30,37 @@ interface OrderData {
 }
 
 export function CustomerHistoryPanel({ customer }: CustomerHistoryPanelProps) {
+  // Hook must run unconditionally, so it is called before the null guard; the
+  // query is only enabled once a customer is actually selected.
+  const { data: orders = [], isLoading } = useOrders({
+    customerId: customer?.id,
+    enabled: !!customer,
+  });
+
   if (!customer) return null;
 
-  const mockOrders: OrderData[] = [];
+  const orderData: OrderData[] = orders.map((order) => {
+    const created = new Date(order.createdAt);
+    return {
+      id: order.id,
+      orderId: order.orderNumber,
+      date: created.toLocaleDateString(),
+      time: created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      items: order.items.map((item) => ({
+        name: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.totalPrice,
+      })),
+      subtotal: order.subtotal,
+      tax: order.tax,
+      discount: order.discount ?? 0,
+      total: order.total,
+      paymentMethod: order.paymentMethod || '-',
+      cashier: getOrderStaffName(order) || '-',
+      branch: getOrderBranchName(order) || '-',
+    };
+  });
 
   return (
     <div className="flex flex-col gap-5">
@@ -44,9 +73,15 @@ export function CustomerHistoryPanel({ customer }: CustomerHistoryPanelProps) {
           </div>
           <div className="text-center p-3 bg-[var(--card)] rounded-lg border border-[var(--border)]">
             <div className="text-[10px] text-subtle mb-1">Total Spent</div>
-            <div className="text-lg font-extrabold text-emerald-400">${(customer.totalSpent || 0).toLocaleString()}</div>
+            <div className="text-lg font-extrabold text-emerald-400">₦{(customer.totalSpent || 0).toLocaleString()}</div>
           </div>
         </div>
+        {customer.branches && customer.branches.length > 0 && (
+          <div className="mt-3 flex items-center gap-2 text-[11px] text-subtle">
+            <IconStore size={12} />
+            <span>Branches: <span className="text-muted">{customer.branches.join(', ')}</span></span>
+          </div>
+        )}
       </div>
 
       <div>
@@ -54,13 +89,17 @@ export function CustomerHistoryPanel({ customer }: CustomerHistoryPanelProps) {
           <IconReceipt size={12} />
           Purchase History
         </div>
-        {mockOrders.length === 0 ? (
+        {isLoading ? (
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-8 text-center">
+            <div className="text-subtle text-[13px]">Loading purchase history…</div>
+          </div>
+        ) : orderData.length === 0 ? (
           <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-8 text-center">
             <div className="text-subtle text-[13px]">No purchase history found</div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {mockOrders.map(order => (
+            {orderData.map(order => (
               <OrderCard key={order.id} order={order} />
             ))}
           </div>
@@ -79,7 +118,7 @@ function OrderCard({ order }: { order: OrderData }) {
           <span className="text-[10px] text-subtle">·</span>
           <span className="text-[11px] text-muted">{order.date} at {order.time}</span>
         </div>
-        <span className="text-[13px] font-bold text-emerald-400">${order.total.toFixed(2)}</span>
+        <span className="text-[13px] font-bold text-emerald-400">₦{order.total.toFixed(2)}</span>
       </div>
       
       <div className="px-4 py-3 border-b border-[var(--border)]">
@@ -91,7 +130,7 @@ function OrderCard({ order }: { order: OrderData }) {
                 <span className="text-[12px] text-muted">{item.name}</span>
                 <span className="text-[10px] text-subtle">x{item.quantity}</span>
               </div>
-              <span className="text-[12px] text-muted">${item.total.toFixed(2)}</span>
+              <span className="text-[12px] text-muted">₦{item.total.toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -113,8 +152,8 @@ function OrderCard({ order }: { order: OrderData }) {
           </div>
         </div>
         <div className="flex items-center gap-3 text-[11px] text-subtle">
-          {order.discount > 0 && <span className="text-amber-400">-${order.discount.toFixed(2)}</span>}
-          <span>Tax: ${order.tax.toFixed(2)}</span>
+          {order.discount > 0 && <span className="text-amber-400">-₦{order.discount.toFixed(2)}</span>}
+          <span>Tax: ₦{order.tax.toFixed(2)}</span>
         </div>
       </div>
     </div>

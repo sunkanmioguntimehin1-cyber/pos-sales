@@ -25,6 +25,14 @@ const orderSchema = new Schema(
     items: { type: [orderItemSchema], required: true },
     subtotal: { type: Number, required: true, min: 0 },
     tax: { type: Number, default: 0, min: 0 },
+    /**
+     * Discount actually given on this sale: the amount deducted from the
+     * tax-inclusive total, plus the store rate (%) that produced it. Stored so
+     * receipts, order history and reports can show what was given up rather
+     * than only the net total.
+     */
+    discount: { type: Number, default: 0, min: 0 },
+    discountRate: { type: Number, default: 0, min: 0, max: 100 },
     total: { type: Number, required: true, min: 0 },
     paymentMethod: { type: String },
     status: { 

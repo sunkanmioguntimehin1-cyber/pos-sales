@@ -118,7 +118,7 @@ export function OrdersScreen() {
       <div className="grid grid-cols-4 gap-3">
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Revenue (today)</div>
-          <div className="text-[22px] font-extrabold tabular-nums text-emerald-400">{isLoading ? '...' : `$${revenue.toFixed(2)}`}</div>
+          <div className="text-[22px] font-extrabold tabular-nums text-emerald-400">{isLoading ? '...' : `₦${revenue.toFixed(2)}`}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Transactions</div>
@@ -126,7 +126,7 @@ export function OrdersScreen() {
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Refunded</div>
-          <div className="text-[22px] font-extrabold tabular-nums text-amber-400">{isLoading ? '...' : `$${refunded.toFixed(2)}`}</div>
+          <div className="text-[22px] font-extrabold tabular-nums text-amber-400">{isLoading ? '...' : `₦${refunded.toFixed(2)}`}</div>
         </div>
         <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
           <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1.5">Voided</div>
@@ -188,7 +188,12 @@ export function OrdersScreen() {
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${o.paymentMethod === 'cash' ? 'bg-[var(--input-bg)] text-muted' : 'bg-blue-500/15 text-blue-400'}`}>{o.paymentMethod || '-'}</span>
                     </td>
-                    <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums text-sm text-[var(--text)]">${o.total.toFixed(2)}</td>
+                    <td className="px-3.5 py-3 border-b border-[var(--border)] font-bold tabular-nums text-sm text-[var(--text)]">
+                      ₦{o.total.toFixed(2)}
+                      {!!o.discount && o.discount > 0 && (
+                        <div className="text-[10px] font-semibold text-amber-400">−₦{o.discount.toFixed(2)}</div>
+                      )}
+                    </td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)] text-xs text-subtle">{formatTime(o.createdAt)}</td>
                     <td className="px-3.5 py-3 border-b border-[var(--border)]">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_BADGE_CLASS[o.status] ?? 'bg-[var(--input-bg)] text-muted'}`}>{getStatusLabel(o.status)}</span>

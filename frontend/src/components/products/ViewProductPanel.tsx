@@ -1,5 +1,6 @@
 'use client';
 import { SidePanel } from '@/components/ui/SidePanel';
+import { Barcode } from '@/components/ui/Barcode';
 import { Product, getProductCategoryName } from '@/lib/api/products';
 
 interface ViewProductPanelProps {
@@ -74,15 +75,36 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'SKU', value: product.sku || '-' },
-              { label: 'Barcode', value: product.barcode || '-' },
-            ].map(item => (
-              <div key={item.label} className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
-                <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">{item.label}</div>
-                <div className="text-[13px] text-[var(--text)] font-medium">{item.value}</div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">SKU</div>
+              <div className="text-[13px] text-[var(--text)] font-medium">{product.sku || '-'}</div>
+            </div>
+            <div className="col-span-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Barcode</div>
+              {product.barcode ? (
+                <div className="flex items-center gap-3">
+                  <Barcode value={product.barcode} height={34} width={1.5} displayValue />
+                  <span className="text-[11px] text-muted font-mono">{product.barcode}</span>
+                </div>
+              ) : (
+                <div className="text-[13px] text-[var(--text)] font-medium">-</div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {product.size ? (
+              <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+                <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Size</div>
+                <div className="text-[13px] text-[var(--text)] font-medium">{product.size}</div>
               </div>
-            ))}
+            ) : null}
+            {product.colour ? (
+              <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+                <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Colour</div>
+                <div className="text-[13px] text-[var(--text)] font-medium">{product.colour}</div>
+              </div>
+            ) : null}
           </div>
 
           <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
@@ -90,14 +112,32 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
             <div className="text-[13px] text-[var(--text)] font-medium">{getProductCategoryName(product) || '-'}</div>
           </div>
 
+          {product.description ? (
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Description / Material</div>
+              <div className="text-[13px] text-[var(--text)] leading-relaxed whitespace-pre-wrap">{product.description}</div>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
               <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Price</div>
-              <div className="text-[16px] font-bold tabular-nums text-[var(--text)]">${product.price.toFixed(2)}</div>
+              <div className="text-[16px] font-bold tabular-nums text-[var(--text)]">₦{product.price.toFixed(2)}</div>
             </div>
             <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
               <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Cost</div>
-              <div className="text-[16px] font-bold tabular-nums text-muted">${(product.costPrice || 0).toFixed(2)}</div>
+              <div className="text-[16px] font-bold tabular-nums text-muted">₦{(product.costPrice || 0).toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Overhead Cost</div>
+              <div className="text-[13px] font-medium tabular-nums text-muted">₦{(product.overheadCost || 0).toFixed(2)}</div>
+            </div>
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3">
+              <div className="text-[10px] text-subtle font-bold uppercase tracking-widest mb-1">Operating Cost</div>
+              <div className="text-[13px] font-medium tabular-nums text-muted">₦{(product.operatingCost || 0).toFixed(2)}</div>
             </div>
           </div>
 
@@ -123,7 +163,7 @@ export function ViewProductPanel({ isOpen, onClose, product, onEdit, onDelete }:
             <div className="space-y-2">
               <div className="flex justify-between text-[13px]">
                 <span className="text-muted">Gross Profit</span>
-                <span className="text-[var(--text)] font-medium">${(product.price - (product.costPrice || 0)).toFixed(2)}</span>
+                <span className="text-[var(--text)] font-medium">₦{(product.price - (product.costPrice || 0)).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-[13px]">
                 <span className="text-muted">Profit Margin</span>

@@ -25,6 +25,15 @@ const storeSchema = new Schema(
         number: { type: String, trim: true, default: '' },
         includedInPrice: { type: Boolean, default: false },
       },
+      /**
+       * The store-wide discount the till may apply to a sale. Set by the admin
+       * in Settings → Discount; the cashier can only switch it on or off at
+       * checkout, never change the rate. `rate` is a percentage of the
+       * tax-inclusive total.
+       */
+      discount: {
+        rate: { type: Number, default: 0, min: 0, max: 100 },
+      },
       paymentMethods: {
         cash: { type: Boolean, default: true },
         transfer: {

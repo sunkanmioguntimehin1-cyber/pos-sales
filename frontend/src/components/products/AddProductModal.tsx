@@ -3,15 +3,23 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { ProductForm, ProductFormData, emptyFormData } from './ProductForm';
+import { generateBarcode } from '@/lib/utils/barcode';
 
 interface AddProductFormData {
   name: string;
   productCode: string;
+  description: string;
+  size: string;
+  colour: string;
+  barcode: string;
   sellingPrice: number;
   cost: number;
+  overheadCost?: number;
+  operatingCost?: number;
   stock: number;
   categoryId?: string;
   isActive?: boolean;
+  taxable: boolean;
   image?: string;
 }
 
@@ -29,6 +37,7 @@ const generateProductCode = (): string => {
 
 export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [barcode, setBarcode] = useState<string>('');
   
   const {
     control,
@@ -49,6 +58,15 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
       setValue('productCode', generateProductCode());
     }
   }, [productCodeType, isOpen, setValue]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Fresh scannable EAN-13 barcode each time the Add form opens. The
+      // backend falls back to generating one too, for products created via
+      // other flows (e.g. Inventory).
+      setBarcode(generateBarcode());
+    }
+  }, [isOpen]);
 
   const validateForm = (data: ProductFormData): boolean => {
     let hasErrors = false;
@@ -79,16 +97,25 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
     const sellingPrice = parseFloat(formData.sellingPrice);
     const cost = parseFloat(formData.cost);
     const stock = parseInt(formData.stock);
+    const overheadCost = parseFloat(formData.overheadCost);
+    const operatingCost = parseFloat(formData.operatingCost);
 
     onAdd({
       // Reuse the code shown in the form rather than generating a second one.
       productCode: formData.productCode.trim() || generateProductCode(),
       name: formData.name,
+      description: formData.description.trim(),
+      size: formData.size.trim(),
+      colour: formData.colour.trim(),
+      barcode,
       sellingPrice,
       cost,
+      overheadCost: Number.isNaN(overheadCost) ? undefined : overheadCost,
+      operatingCost: Number.isNaN(operatingCost) ? undefined : operatingCost,
       stock,
       categoryId: formData.category || undefined,
       isActive: formData.status !== 'inactive',
+      taxable: formData.taxable,
       image: imagePreview || undefined,
     });
 
@@ -98,6 +125,7 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
   const handleClose = () => {
     reset(emptyFormData);
     setImagePreview(null);
+    setBarcode('');
     onClose();
   };
 
@@ -129,6 +157,8 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
         errors={errors}
         imagePreview={imagePreview}
         setImagePreview={setImagePreview}
+        showTax
+        barcode={barcode}
       />
     </Modal>
   );
