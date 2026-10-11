@@ -34,12 +34,21 @@ api.interceptors.response.use(
       const { status, data, config } = error.response;
       const message = data?.error || 'An error occurred';
       const isLoginRequest = config?.url?.includes('/api/auth/login');
+      // A wrong passcode is also a 401, but it means "try again", not "your
+      // session died" — bouncing to /login and wiping the token would be wrong.
+      // A wrong passcode or current password is also a 401, but it means "try
+      // again", not "your session died" — bouncing to /login and wiping the
+      // token would be wrong.
+      const isPasscodeCheck =
+        config?.url?.includes('/api/staff/verify-pin') ||
+        config?.url?.includes('/api/staff/me/pin') ||
+        config?.url?.includes('/api/staff/me/password');
 
       switch (status) {
         case 401:
           // A failed login is a 401 too, but bouncing to /login and claiming
           // the session expired would be nonsense — just surface the message.
-          if (!isLoginRequest) {
+          if (!isLoginRequest && !isPasscodeCheck) {
             if (typeof window !== 'undefined') {
               localStorage.removeItem('token');
               localStorage.removeItem('auth-storage');

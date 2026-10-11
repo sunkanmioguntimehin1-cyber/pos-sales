@@ -62,11 +62,17 @@ interface ProductFormProps {
   isEdit?: boolean;
   /** Show the per-product tax toggle + tax reference (Add Product flow only). */
   showTax?: boolean;
+  /**
+   * Whether the signed-in user may view/edit cost, overhead and operating
+   * costs. Roles without `products:cost` (e.g. Mid Admin) get these fields
+   * hidden so products can still be created without exposing margins.
+   */
+  canViewCost?: boolean;
   /** Auto-generated EAN-13 barcode to preview (Add generates, Edit shows stored). */
   barcode?: string;
 }
 
-export function ProductForm({ control, errors, imagePreview, setImagePreview, isEdit = false, showTax = false, barcode }: ProductFormProps) {
+export function ProductForm({ control, errors, imagePreview, setImagePreview, isEdit = false, showTax = false, canViewCost = true, barcode }: ProductFormProps) {
   // Categories live in the database; the previous hardcoded name list meant the
   // submitted value could never be a valid categoryId.
   const { data: categories = [] } = useCategories();
@@ -315,7 +321,7 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className={canViewCost ? "grid grid-cols-2 gap-3 mb-4" : "mb-4"}>
         <div>
           <label className={labelCls}>Selling Price *</label>
           <Controller
@@ -343,70 +349,74 @@ export function ProductForm({ control, errors, imagePreview, setImagePreview, is
             )}
           />
         </div>
-        <div>
-          <label className={labelCls}>Cost *</label>
-          <Controller
-            name="cost"
-            control={control}
-            render={({ field }) => (
-              <>
-                <input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={errors.cost ? inputErrorCls : inputCls}
-                  placeholder="0.00"
-                />
-                {errors.cost && <span className="text-[11px] text-red-400 mt-1">{errors.cost.message}</span>}
-              </>
-            )}
-          />
-        </div>
+        {canViewCost && (
+          <div>
+            <label className={labelCls}>Cost *</label>
+            <Controller
+              name="cost"
+              control={control}
+              render={({ field }) => (
+                <>
+                  <input
+                    {...field}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className={errors.cost ? inputErrorCls : inputCls}
+                    placeholder="0.00"
+                  />
+                  {errors.cost && <span className="text-[11px] text-red-400 mt-1">{errors.cost.message}</span>}
+                </>
+              )}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <label className={labelCls}>Overhead Cost</label>
-          <Controller
-            name="overheadCost"
-            control={control}
-            render={({ field }) => (
-              <>
-                <input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={inputCls}
-                  placeholder="0.00 (optional)"
-                />
-                {errors.overheadCost && <span className="text-[11px] text-red-400 mt-1">{errors.overheadCost.message}</span>}
-              </>
-            )}
-          />
+      {canViewCost && (
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className={labelCls}>Overhead Cost</label>
+            <Controller
+              name="overheadCost"
+              control={control}
+              render={({ field }) => (
+                <>
+                  <input
+                    {...field}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className={inputCls}
+                    placeholder="0.00 (optional)"
+                  />
+                  {errors.overheadCost && <span className="text-[11px] text-red-400 mt-1">{errors.overheadCost.message}</span>}
+                </>
+              )}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Operating Cost</label>
+            <Controller
+              name="operatingCost"
+              control={control}
+              render={({ field }) => (
+                <>
+                  <input
+                    {...field}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className={inputCls}
+                    placeholder="0.00 (optional)"
+                  />
+                  {errors.operatingCost && <span className="text-[11px] text-red-400 mt-1">{errors.operatingCost.message}</span>}
+                </>
+              )}
+            />
+          </div>
         </div>
-        <div>
-          <label className={labelCls}>Operating Cost</label>
-          <Controller
-            name="operatingCost"
-            control={control}
-            render={({ field }) => (
-              <>
-                <input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={inputCls}
-                  placeholder="0.00 (optional)"
-                />
-                {errors.operatingCost && <span className="text-[11px] text-red-400 mt-1">{errors.operatingCost.message}</span>}
-              </>
-            )}
-          />
-        </div>
-      </div>
+      )}
 
       {showTax && (
         <div className="mb-4">

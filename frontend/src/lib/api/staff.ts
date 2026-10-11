@@ -22,6 +22,8 @@ export interface Staff {
   /** Present only when the list was read with the branch populated. */
   branchName?: string;
   branchType?: 'head_office' | 'branch';
+  /** Whether a POS passcode has been set (the hash itself is never sent). */
+  hasPin?: boolean;
   createdAt: string;
 }
 
@@ -71,4 +73,12 @@ export const staffApi = {
       '/api/staff/verify-pin',
       { staffId, pin }
     ).then(res => res.data),
+
+  /** Set the signed-in user's own POS passcode. `currentPin` is required when one already exists. */
+  setMyPin: (data: { pin: string; currentPin?: string }) =>
+    api.put<{ success: boolean }>('/api/staff/me/pin', data).then(res => res.data),
+
+  /** Change the signed-in user's own login password; the current one is always required. */
+  changeMyPassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.put<{ success: boolean }>('/api/staff/me/password', data).then(res => res.data),
 };

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { IconStore, IconAlertTriangle } from '@/components/ui/Icons';
+import { IconStore, IconAlertTriangle, IconDownload } from '@/components/ui/Icons';
+import api from '@/lib/api/axios';
 import { InventoryItem, StockAdjustmentFormData, StockLog } from './types';
 import { InventoryTable } from './InventoryTable';
 import { StockAdjustmentForm } from './StockAdjustmentForm';
@@ -10,8 +11,11 @@ import { StockHistoryPanel } from './StockHistoryPanel';
 import { useProducts, useStockMovements, useAdjustStock, useSetStockTarget, useCreateProduct, useBranches, getProductCategoryName } from '@/lib/hooks';
 // A `<select>` needs a value, so "no location" is a sentinel rather than ''.
 import { ALL_LOCATIONS_SENTINEL as ALL_LOCATIONS, toBranchQueryId } from '@/lib/utils/branchQuery';
+import { useCan } from '@/lib/auth/can';
 
 export function InventoryScreen() {
+  const { has } = useCan();
+  const canViewCost = has('products:cost');
   const { data: branches = [] } = useBranches();
   const [locationId, setLocationId] = useState<string>(ALL_LOCATIONS);
   const selectedBranch = branches.find((b) => b.id === locationId);
@@ -166,6 +170,31 @@ export function InventoryScreen() {
     window.print();
   };
 
+  const handleExportXlsx = async () => {
+    if (!selectedBranch) return;
+    try {
+      const response = await api.get(
+        `/api/products/export/inventory?branchId=${selectedBranch.id}`,
+        { responseType: 'blob' }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const branchName = (selectedBranch.name || 'branch')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase();
+      link.setAttribute('download', `inventory-${branchName}-${dateStr}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export inventory', error);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-4 gap-3">
@@ -202,6 +231,14 @@ export function InventoryScreen() {
           </select>
         </div>
         {selectedBranch && (
+          <button
+            onClick={handleExportXlsx}
+            className="h-9 flex items-center gap-1.5 px-3.5 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
+          >
+            <IconDownload size={12} /> Export XLS
+          </button>
+        )}
+        {selectedBranch && (
           <span className="flex items-center gap-1 text-[11px] text-subtle">
             <IconAlertTriangle size={12} />
             Stock counts and adjustments are limited to this location.
@@ -220,6 +257,7 @@ export function InventoryScreen() {
         onAdjustStock={() => setIsAdjustPanelOpen(true)}
         onViewHistory={handleViewHistory}
         onPrint={handlePrint}
+        onExport={selectedBranch ? handleExportXlsx : undefined}
         onHandLabel={onHandLabel}
         showTotal={!!selectedBranch}
         adjustDisabledReason={
@@ -230,6 +268,7 @@ export function InventoryScreen() {
       <AddInventoryModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
+        canViewCost={canViewCost}
         onAdd={handleAddInventory}
       />
 

@@ -59,6 +59,7 @@ export async function login(req, res) {
         role: staffMember.role,
         roleName: role?.name ?? staffMember.role,
         permissions,
+        hasPin: Boolean(staffMember.pinHash),
       },
     });
   } catch (error) {
@@ -87,6 +88,7 @@ export async function getMe(req, res) {
       email: staffMember.email,
       name: staffMember.name,
       role: staffMember.role,
+      hasPin: Boolean(staffMember.pinHash),
     };
     const user = await withRoleDetails(baseUser);
 

@@ -8,6 +8,8 @@ import { InventoryFormData, emptyInventoryFormData } from './types';
 interface AddInventoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Whether the user may enter a cost price; hidden for Mid Admin. */
+  canViewCost?: boolean;
   /** Only the fields that map onto the product schema are passed through. */
   onAdd: (item: {
     productCode: string;
@@ -25,7 +27,7 @@ const generateProductCode = (): string => {
   return `PRD-${timestamp}-${random}`;
 };
 
-export function AddInventoryModal({ isOpen, onClose, onAdd }: AddInventoryModalProps) {
+export function AddInventoryModal({ isOpen, onClose, canViewCost = true, onAdd }: AddInventoryModalProps) {
   const {
     control,
     handleSubmit,
@@ -120,7 +122,7 @@ export function AddInventoryModal({ isOpen, onClose, onAdd }: AddInventoryModalP
         </>
       }
     >
-      <InventoryForm control={control} errors={errors} />
+      <InventoryForm control={control} errors={errors} canViewCost={canViewCost} />
     </Modal>
   );
 }

@@ -7,7 +7,7 @@ import { Staff } from './staff';
  */
 export type PermissionKey =
   | 'pos'
-  | 'products:view' | 'products:manage'
+  | 'products:view' | 'products:manage' | 'products:cost'
   | 'stock:view' | 'stock:manage' | 'stock:transfer'
   | 'orders:view' | 'orders:manage'
   | 'customers:view' | 'customers:manage'
@@ -26,6 +26,7 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   { key: 'pos', label: 'Ring up sales (use the POS)' },
   { key: 'products:view', label: 'View products and categories' },
   { key: 'products:manage', label: 'Create, edit and delete products and categories' },
+  { key: 'products:cost', label: 'View and edit product cost, overhead and operating costs' },
   { key: 'stock:view', label: 'View inventory, stock levels and transfers' },
   { key: 'stock:manage', label: 'Adjust stock and set per-branch stock targets' },
   { key: 'stock:transfer', label: 'Create stock transfers between locations' },
@@ -47,7 +48,7 @@ export const ALL_PERMISSION_KEYS = ALL_PERMISSIONS.map((permission) => permissio
 /** Grouped by noun, so the Roles screen renders a tidy permission matrix. */
 export const PERMISSION_GROUPS: { label: string; permissions: PermissionKey[] }[] = [
   { label: 'Sales', permissions: ['pos'] },
-  { label: 'Products', permissions: ['products:view', 'products:manage'] },
+  { label: 'Products', permissions: ['products:view', 'products:manage', 'products:cost'] },
   { label: 'Stock & Inventory', permissions: ['stock:view', 'stock:manage', 'stock:transfer'] },
   { label: 'Orders', permissions: ['orders:view', 'orders:manage'] },
   { label: 'Customers', permissions: ['customers:view', 'customers:manage'] },

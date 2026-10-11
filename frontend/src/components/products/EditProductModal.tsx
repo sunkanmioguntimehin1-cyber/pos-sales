@@ -12,7 +12,7 @@ interface EditProductFormData {
   size: string;
   colour: string;
   sellingPrice: number;
-  cost: number;
+  cost?: number;
   overheadCost?: number;
   operatingCost?: number;
   stock: number;
@@ -25,6 +25,8 @@ interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
+  /** Whether the user may view/edit cost, overhead and operating costs. */
+  canViewCost?: boolean;
   onUpdate: (productId: string, productData: EditProductFormData) => void;
 }
 
@@ -52,7 +54,7 @@ const generateProductCode = (): string => {
   return `PRD-${timestamp}-${random}`;
 };
 
-export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditProductModalProps) {
+export function EditProductModal({ isOpen, onClose, product, canViewCost = true, onUpdate }: EditProductModalProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const {
@@ -111,7 +113,7 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
       setError('sellingPrice', { type: 'manual', message: 'Valid selling price is required' });
       hasErrors = true;
     }
-    if (!data.cost || parseFloat(data.cost) < 0) {
+    if (canViewCost && (!data.cost || parseFloat(data.cost) < 0)) {
       setError('cost', { type: 'manual', message: 'Valid cost is required' });
       hasErrors = true;
     }
@@ -140,9 +142,9 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
       size: formData.size.trim(),
       colour: formData.colour.trim(),
       sellingPrice,
-      cost,
-      overheadCost: Number.isNaN(overheadCost) ? undefined : overheadCost,
-      operatingCost: Number.isNaN(operatingCost) ? undefined : operatingCost,
+      cost: canViewCost ? cost : undefined,
+      overheadCost: canViewCost && !Number.isNaN(overheadCost) ? overheadCost : undefined,
+      operatingCost: canViewCost && !Number.isNaN(operatingCost) ? operatingCost : undefined,
       stock,
       categoryId: formData.category || undefined,
       isActive: formData.status !== 'inactive',
@@ -188,6 +190,7 @@ export function EditProductModal({ isOpen, onClose, product, onUpdate }: EditPro
           imagePreview={imagePreview}
           setImagePreview={setImagePreview}
           isEdit
+          canViewCost={canViewCost}
           barcode={product.barcode}
         />
       )}

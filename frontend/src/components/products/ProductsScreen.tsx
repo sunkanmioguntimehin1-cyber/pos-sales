@@ -43,7 +43,7 @@ interface AddProductFormData {
   colour: string;
   barcode: string;
   sellingPrice: number;
-  cost: number;
+  cost?: number;
   overheadCost?: number;
   operatingCost?: number;
   stock: number;
@@ -60,7 +60,7 @@ interface UpdateProductFormData {
   size: string;
   colour: string;
   sellingPrice: number;
-  cost: number;
+  cost?: number;
   overheadCost?: number;
   operatingCost?: number;
   stock: number;
@@ -93,6 +93,10 @@ export function ProductsScreen() {
   const deleteProduct = useDeleteProduct();
   const { has } = useCan();
   const canManage = has('products:manage');
+  // Cost, overhead, operating cost and profit are hidden from roles without
+  // the cost permission (e.g. Mid Admin), even though they can still manage
+  // products.
+  const canViewCost = has('products:cost');
 
   const filteredProducts = products.filter(p =>
     (statusFilter === ALL || getProductStatus(p) === statusFilter.toLowerCase()) &&
@@ -301,6 +305,7 @@ export function ProductsScreen() {
       <AddProductModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
+        canViewCost={canViewCost}
         onAdd={handleAddProduct}
       />
 
@@ -311,6 +316,7 @@ export function ProductsScreen() {
           setSelectedProduct(null);
         }}
         product={selectedProduct}
+        canViewCost={canViewCost}
         onUpdate={handleUpdateProduct}
       />
 
@@ -318,6 +324,7 @@ export function ProductsScreen() {
         isOpen={isViewPanelOpen}
         onClose={closeViewPanel}
         product={selectedProduct}
+        canViewCost={canViewCost}
         onEdit={openEditModal}
         onDelete={openDeleteConfirm}
       />

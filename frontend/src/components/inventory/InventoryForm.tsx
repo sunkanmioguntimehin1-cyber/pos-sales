@@ -9,9 +9,11 @@ const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-sub
 interface InventoryFormProps {
   control: Control<InventoryFormData>;
   errors: FieldErrors<InventoryFormData>;
+  /** Hide the Cost Price field for roles without `products:cost` (e.g. Mid Admin). */
+  canViewCost?: boolean;
 }
 
-export function InventoryForm({ control, errors }: InventoryFormProps) {
+export function InventoryForm({ control, errors, canViewCost = true }: InventoryFormProps) {
   return (
     <>
       <div className="mb-4">
@@ -67,7 +69,7 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className={`grid ${canViewCost ? 'grid-cols-3' : 'grid-cols-2'} gap-3 mb-4`}>
         <div>
           <label className={labelCls}>Name *</label>
           <Controller
@@ -106,23 +108,25 @@ export function InventoryForm({ control, errors }: InventoryFormProps) {
             )}
           />
         </div>
-        <div>
-          <label className={labelCls}>Cost Price</label>
-          <Controller
-            name="costPrice"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                min="0"
-                step="0.01"
-                className={inputCls}
-                placeholder="0.00"
-              />
-            )}
-          />
-        </div>
+        {canViewCost && (
+          <div>
+            <label className={labelCls}>Cost Price</label>
+            <Controller
+              name="costPrice"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={inputCls}
+                  placeholder="0.00"
+                />
+              )}
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">

@@ -19,6 +19,8 @@ export interface User {
    * backend validates with the same list, so the UI gates on a signed fact.
    */
   permissions?: PermissionKey[];
+  /** Whether this user has set a POS passcode. Drives the Settings > Security UI. */
+  hasPin?: boolean;
 }
 
 export interface LoginResponse {

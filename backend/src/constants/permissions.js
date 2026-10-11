@@ -11,6 +11,7 @@ export const PERMISSIONS = {
 
   'products:view': 'View products and categories',
   'products:manage': 'Create, edit and delete products and categories',
+  'products:cost': 'View and edit product cost, overhead and operating costs',
 
   'stock:view': 'View inventory, stock levels and transfers',
   'stock:manage': 'Adjust stock and set per-branch stock targets',
@@ -40,7 +41,7 @@ export const ALL_PERMISSIONS = Object.keys(PERMISSIONS);
 /** Grouped by noun for the Roles screen's checkbox list. */
 export const PERMISSION_GROUPS = [
   { label: 'Sales', permissions: ['pos'] },
-  { label: 'Products', permissions: ['products:view', 'products:manage'] },
+  { label: 'Products', permissions: ['products:view', 'products:manage', 'products:cost'] },
   { label: 'Stock & Inventory', permissions: ['stock:view', 'stock:manage', 'stock:transfer'] },
   { label: 'Orders', permissions: ['orders:view', 'orders:manage'] },
   { label: 'Customers', permissions: ['customers:view', 'customers:manage'] },

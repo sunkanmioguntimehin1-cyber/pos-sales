@@ -34,6 +34,9 @@ function toPublicStaff(s, rolesMap) {
     branchId: branch ? branch.id : (s.branchId ? String(s.branchId) : null),
     branchName: branch ? branch.name : undefined,
     branchType: branch ? branch.type : undefined,
+    // Whether a POS passcode exists, without ever exposing the hash. The POS
+    // uses this to block a sale by a staff member who has not set one yet.
+    hasPin: Boolean(s.pinHash),
     createdAt: s.createdAt,
   };
 }
@@ -287,5 +290,94 @@ export async function verifyPin(req, res) {
     });
   } catch (error) {
     respondWithError(res, error, { context: 'Verify PIN error', message: 'Failed to verify PIN' });
+  }
+}
+
+/**
+ * Self-service passcode: a signed-in staff member sets their own POS passcode.
+ *
+ * Unlike updateStaff this deliberately requires no `staff:manage` permission —
+ * the whole point is that any staff can secure their own account. If a passcode
+ * already exists the current one must be supplied, so possession of a live
+ * session alone is not enough to overwrite it.
+ */
+export async function setMyPin(req, res) {
+  try {
+    const { pin, currentPin } = req.body;
+
+    if (!/^\d{4,6}$/.test(pin ?? '')) {
+      res.status(400).json({ error: 'Passcode must be 4 to 6 digits' });
+      return;
+    }
+
+    const staff = await Staff.findById(req.user.userId);
+    if (!staff) {
+      res.status(404).json({ error: 'Staff not found' });
+      return;
+    }
+
+    if (staff.pinHash) {
+      if (!currentPin) {
+        res.status(400).json({ error: 'Current passcode is required' });
+        return;
+      }
+      const isCurrent = await bcrypt.compare(currentPin, staff.pinHash);
+      if (!isCurrent) {
+        res.status(401).json({ error: 'Current passcode is incorrect' });
+        return;
+      }
+    }
+
+    staff.pinHash = await bcrypt.hash(pin, 10);
+    await staff.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    respondWithError(res, error, { context: 'Set my PIN error', message: 'Failed to update passcode' });
+  }
+}
+
+/**
+ * Self-service login password: a signed-in staff member changes the initial
+ * password an admin assigned them. Requires the current password, so holding a
+ * live session alone cannot be used to take over the account.
+ */
+export async function changeMyPassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters' });
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      res.status(400).json({ error: 'New password must be different from the current one' });
+      return;
+    }
+
+    const staff = await Staff.findById(req.user.userId);
+    if (!staff) {
+      res.status(404).json({ error: 'Staff not found' });
+      return;
+    }
+
+    if (!staff.passwordHash) {
+      res.status(400).json({ error: 'No password is set on this account' });
+      return;
+    }
+
+    const isCurrent = await bcrypt.compare(currentPassword ?? '', staff.passwordHash);
+    if (!isCurrent) {
+      res.status(401).json({ error: 'Current password is incorrect' });
+      return;
+    }
+
+    staff.passwordHash = await bcrypt.hash(newPassword, 10);
+    await staff.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    respondWithError(res, error, { context: 'Change my password error', message: 'Failed to update password' });
   }
 }

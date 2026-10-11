@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { 
   getProducts, getProduct, createProduct, updateProduct, deleteProduct, adjustStock,
   getProductStock, setProductStockTarget, getMovements,
-  getCategories, createCategory, updateCategory, deleteCategory 
+  getCategories, createCategory, updateCategory, deleteCategory,
+  exportInventoryXlsx
 } from '../controllers/products.controller.js';
 import { authMiddleware, requirePermission } from '../middleware/auth.middleware.js';
 
@@ -19,6 +20,7 @@ router.delete('/categories/:categoryId', requirePermission('products:manage'), d
 
 router.get('/', requirePermission('products:view'), getProducts);
 router.post('/', requirePermission('products:manage'), createProduct);
+router.get('/export/inventory', requirePermission('stock:view'), exportInventoryXlsx);
 // `/movements` is the Movement Log feed and must be matched before the
 // `/:productId/...` patterns below, or "movements" would be cast to an id.
 router.get('/movements', requirePermission('stock:view'), getMovements);

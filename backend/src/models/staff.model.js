@@ -10,7 +10,6 @@ const staffSchema = new Schema(
     pinHash: { type: String },
     role: {
       type: String,
-      enum: ['admin', 'manager', 'cashier'],
       required: true,
       default: 'cashier'
     },

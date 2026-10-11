@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { IconSearch, IconPlus, IconEdit, IconHistory, IconPrinter, IconSliders } from '@/components/ui/Icons';
+import { IconSearch, IconPlus, IconEdit, IconHistory, IconPrinter, IconSliders, IconDownload } from '@/components/ui/Icons';
 import { InventoryItem, StockLog } from './types';
 import { useCan } from '@/lib/auth/can';
 
@@ -11,6 +11,7 @@ interface InventoryTableProps {
   onAdjustStock: () => void;
   onViewHistory: (item: InventoryItem) => void;
   onPrint: (item: InventoryItem) => void;
+  onExport?: () => void;
   /** Column heading for the location-scoped figure, e.g. "On Hand (HQ)". */
   onHandLabel?: string;
   /**
@@ -38,7 +39,7 @@ const stockBadge = (s: string) => {
   return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400">Out</span>;
 };
 
-export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock, onViewHistory, onPrint, onHandLabel = 'On Hand', adjustDisabledReason, showTotal = true }: InventoryTableProps) {
+export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock, onViewHistory, onPrint, onExport, onHandLabel = 'On Hand', adjustDisabledReason, showTotal = true }: InventoryTableProps) {
   const [tab, setTab] = useState<'stock' | 'logs'>('stock');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
@@ -104,6 +105,14 @@ export function InventoryTable({ inventory, logs, onAddInventory, onAdjustStock,
                 className="h-9 flex items-center gap-1.5 px-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[13px] font-semibold shadow-[0_2px_8px_rgba(245,158,11,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500"
               >
                 <IconSliders size={12} /> Adjust Stock
+              </button>
+            )}
+            {onExport && (
+              <button
+                onClick={onExport}
+                className="h-9 flex items-center gap-1.5 px-3.5 bg-[var(--surface-2)] border border-[var(--border-strong)] text-muted hover:text-[var(--text)] rounded-lg text-[13px] font-semibold transition-all"
+              >
+                <IconDownload size={12} /> Export XLS
               </button>
             )}
             {canAdd && (

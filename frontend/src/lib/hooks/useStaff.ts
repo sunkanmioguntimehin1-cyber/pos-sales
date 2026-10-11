@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { staffApi, Staff, CreateStaffData, UpdateStaffData } from '@/lib/api';
+import { staffApi, authApi, Staff, CreateStaffData, UpdateStaffData } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import { snapshotLists, patchLists, restoreLists } from './optimistic';
 import { toBranchQueryId } from '@/lib/utils/branchQuery';
 
@@ -130,5 +131,36 @@ export function useVerifyPin() {
   return useMutation({
     mutationFn: ({ staffId, pin }: { staffId: string; pin: string }) =>
       staffApi.verifyPin(staffId, pin),
+  });
+}
+
+export function useSetMyPin() {
+  const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { pin: string; currentPin?: string }) => staffApi.setMyPin(data),
+    onSuccess: async () => {
+      toast.success('Passcode updated successfully!');
+      // The passcode flag lives on the auth user, so refresh it to flip the
+      // Settings > Security form between "set" and "change" states.
+      try {
+        const { user } = await authApi.getMe();
+        setUser(user);
+      } catch {
+        // The passcode did save; a failed refresh is not worth surfacing.
+      }
+      queryClient.invalidateQueries({ queryKey: STAFF });
+    },
+  });
+}
+
+export function useChangeMyPassword() {
+  return useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      staffApi.changeMyPassword(data),
+    onSuccess: () => {
+      toast.success('Password updated successfully!');
+    },
   });
 }

@@ -13,7 +13,7 @@ interface AddProductFormData {
   colour: string;
   barcode: string;
   sellingPrice: number;
-  cost: number;
+  cost?: number;
   overheadCost?: number;
   operatingCost?: number;
   stock: number;
@@ -26,6 +26,8 @@ interface AddProductFormData {
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Whether the user may enter cost, overhead and operating costs. */
+  canViewCost?: boolean;
   onAdd: (product: AddProductFormData) => void;
 }
 
@@ -35,7 +37,7 @@ const generateProductCode = (): string => {
   return `PRD-${timestamp}-${random}`;
 };
 
-export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps) {
+export function AddProductModal({ isOpen, onClose, canViewCost = true, onAdd }: AddProductModalProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [barcode, setBarcode] = useState<string>('');
   
@@ -79,7 +81,7 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
       setError('sellingPrice', { type: 'manual', message: 'Valid selling price is required' });
       hasErrors = true;
     }
-    if (!data.cost || parseFloat(data.cost) < 0) {
+    if (canViewCost && (!data.cost || parseFloat(data.cost) < 0)) {
       setError('cost', { type: 'manual', message: 'Valid cost is required' });
       hasErrors = true;
     }
@@ -109,7 +111,7 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
       colour: formData.colour.trim(),
       barcode,
       sellingPrice,
-      cost,
+      cost: canViewCost ? cost : undefined,
       overheadCost: Number.isNaN(overheadCost) ? undefined : overheadCost,
       operatingCost: Number.isNaN(operatingCost) ? undefined : operatingCost,
       stock,
@@ -158,6 +160,7 @@ export function AddProductModal({ isOpen, onClose, onAdd }: AddProductModalProps
         imagePreview={imagePreview}
         setImagePreview={setImagePreview}
         showTax
+        canViewCost={canViewCost}
         barcode={barcode}
       />
     </Modal>

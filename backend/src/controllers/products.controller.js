@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { Product } from '../models/product.model.js';
 import { Category } from '../models/category.model.js';
 import { Stock } from '../models/stock.model.js';
@@ -246,6 +247,86 @@ function toStockBreakdown(stockLevels) {
     })),
     total,
   };
+}
+
+/**
+ * Export inventory for a specific store/branch as an XLSX file.
+ *
+ * Produces a simple worksheet with the exact columns requested:
+ * "Product Name", "Product Code", "Qty".
+ */
+export async function exportInventoryXlsx(req, res) {
+  try {
+    const { branchId } = req.query;
+
+    if (!branchId) {
+      res.status(400).json({ error: 'branchId is required' });
+      return;
+    }
+
+    const [branch, products] = await Promise.all([
+      Branch.findById(branchId).select('name').lean(),
+      Product.find().sort({ name: 1 }).lean(),
+    ]);
+
+    if (!branch) {
+      res.status(404).json({ error: 'Branch not found' });
+      return;
+    }
+
+    const stockRows = await Stock.find({ branchId }).select('productId quantity').lean();
+    const stockByProduct = new Map(
+      stockRows.map((row) => [String(row.productId), row.quantity || 0])
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'POS App';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Inventory');
+
+    worksheet.columns = [
+      { header: 'Product Name', key: 'name', width: 40 },
+      { header: 'Product Code', key: 'code', width: 20 },
+      { header: 'Qty', key: 'qty', width: 10 },
+    ];
+
+    // Header styling
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF5F5F5' },
+    };
+
+    for (const product of products) {
+      const qty = stockByProduct.get(String(product._id)) ?? 0;
+      worksheet.addRow({
+        name: product.name,
+        code: product.sku || product.barcode || '',
+        qty,
+      });
+    }
+
+    const branchName = (branch.name || 'branch').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `inventory-${branchName}-${dateStr}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.send(buffer);
+  } catch (error) {
+    respondWithError(res, error, {
+      context: 'Export inventory XLSX error',
+      message: 'Failed to export inventory',
+    });
+  }
 }
 
 /**

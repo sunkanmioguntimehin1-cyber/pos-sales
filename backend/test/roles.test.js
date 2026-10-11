@@ -19,19 +19,38 @@ describe('role service', () => {
     await ensureRoles();
   });
 
-  it('seeds the three built-in roles with the right identity and location binding', async () => {
+  it('seeds the built-in roles with the right identity and location binding', async () => {
+    const superAdmin = await getRoleByKey('super-admin');
     const admin = await getRoleByKey('admin');
+    const administrator = await getRoleByKey('administrator');
+    const midAdmin = await getRoleByKey('mid-admin');
     const manager = await getRoleByKey('manager');
     const cashier = await getRoleByKey('cashier');
 
+    assert.ok(superAdmin.isSystem);
+    assert.equal(superAdmin.locationBound, false);
+    assert.deepEqual(superAdmin.permissions.slice().sort(), ALL.slice().sort());
+
     assert.ok(admin.isSystem);
     assert.equal(admin.locationBound, false);
+    assert.equal(admin.name, 'System Admin');
     assert.equal(admin.permissions.length, ALL.length);
     assert.deepEqual(admin.permissions.slice().sort(), ALL.slice().sort());
+
+    // The editable Admin can run everything except defining roles.
+    assert.equal(administrator.isSystem, false);
+    assert.ok(administrator.permissions.includes('products:cost'));
+    assert.ok(!administrator.permissions.includes('roles:manage'));
+
+    // Mid Admin can manage products but never sees product costs.
+    assert.equal(midAdmin.isSystem, false);
+    assert.ok(midAdmin.permissions.includes('products:manage'));
+    assert.ok(!midAdmin.permissions.includes('products:cost'));
 
     assert.equal(manager.isSystem, false);
     assert.equal(manager.locationBound, false);
     assert.ok(manager.permissions.includes('products:manage'));
+    assert.ok(manager.permissions.includes('products:cost'));
     assert.ok(!manager.permissions.includes('roles:manage'));
 
     assert.equal(cashier.isSystem, false);
@@ -54,7 +73,28 @@ describe('role service', () => {
     await Role.create({ key: 'regional', name: 'Regional Manager', permissions: ['pos'], locationBound: false });
 
     const keys = await getNonLocationBoundRoleKeys();
-    assert.deepEqual(keys.sort(), ['admin', 'manager', 'regional']);
+    assert.deepEqual(
+      keys.sort(),
+      ['admin', 'administrator', 'manager', 'mid-admin', 'regional', 'super-admin']
+    );
+  });
+
+  it('grants a system role permissions added after it was first seeded', async () => {
+    // Simulate a database seeded before `products:cost` existed.
+    await Role.updateOne(
+      { key: 'admin' },
+      { $set: { permissions: ALL.filter((permission) => permission !== 'products:cost') } }
+    );
+
+    await ensureRoles();
+
+    const admin = await getRoleByKey('admin');
+    assert.ok(admin.permissions.includes('products:cost'));
+  });
+
+  it('accepts staff assigned to a custom built-in role key', async () => {
+    const member = await Staff.create({ name: 'Casey', role: 'mid-admin' });
+    assert.equal(member.role, 'mid-admin');
   });
 });
 

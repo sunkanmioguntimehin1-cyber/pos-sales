@@ -27,6 +27,7 @@ const ROLE_COLORS: { value: string; label: string; swatch: string }[] = [
   { value: 'bg-blue-500/15 text-blue-400', label: 'Blue', swatch: '#3b82f6' },
   { value: 'bg-emerald-500/15 text-emerald-400', label: 'Green', swatch: '#10b981' },
   { value: 'bg-amber-500/15 text-amber-400', label: 'Amber', swatch: '#f59e0b' },
+  { value: 'bg-orange-500/15 text-orange-400', label: 'Orange', swatch: '#f97316' },
   { value: 'bg-purple-500/15 text-purple-400', label: 'Purple', swatch: '#a855f7' },
   { value: 'bg-pink-500/15 text-pink-400', label: 'Pink', swatch: '#ec4899' },
   { value: 'bg-cyan-500/15 text-cyan-400', label: 'Cyan', swatch: '#06b6d4' },

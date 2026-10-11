@@ -12,6 +12,8 @@ export interface Staff {
   branchId: string | null;
   branchName?: string;
   branchType?: 'head_office' | 'branch';
+  /** Whether a POS passcode has been set (the hash itself is never sent). */
+  hasPin?: boolean;
   createdAt?: string;
 }
 
